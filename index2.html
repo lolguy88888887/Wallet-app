@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Mobile Wallet</title>
+    <!-- Barcode & QR Code Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #06b6d4;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; }
+
+        .app-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; position: relative; }
+
+        /* Login Screen View */
+        .login-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px; }
+        .login-title { font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
+        .login-subtitle { font-size: 0.85rem; color: var(--text-muted); }
+        .input-field { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--card-border); background: #0f172a; color: white; font-size: 1rem; text-align: center; outline: none; }
+        .input-field:focus { border-color: var(--primary); }
+
+        /* Wallet Dashboard View */
+        #wallet-dashboard { display: none; flex-direction: column; gap: 20px; }
+
+        /* Account Header */
+        .header-bar { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--card-border); font-size: 0.85rem; }
+
+        /* Balance Card */
+        .balance-card { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-radius: 20px; padding: 25px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .balance-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: #93c5fd; font-weight: 600; }
+        .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 8px 0; color: white; }
+        .user-name { font-size: 1rem; opacity: 0.9; font-weight: 600; color: #e0f2fe; }
+        .account-id-badge { font-size: 0.75rem; color: #93c5fd; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; }
+
+        /* Action Grid */
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.1s, background-color 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: #000; }
+        .btn-info { background: var(--info); color: #000; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-full { grid-column: span 2; }
+
+        /* Collapsible Drawers */
+        .drawer { display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card-title { font-size: 0.85rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .code-wrapper { background: white; padding: 12px; border-radius: 12px; display: inline-block; width: 100%; margin: 5px 0; }
+        .code-wrapper svg { max-width: 100%; height: auto; }
+        .qr-wrapper { display: flex; justify-content: center; background: white; padding: 12px; border-radius: 12px; margin: 10px auto; width: max-content; }
+
+        /* Transaction History Styles */
+        .history-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; max-height: 250px; overflow-y: auto; text-align: left; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--card-border); font-size: 0.85rem; cursor: pointer; transition: background 0.2s; }
+        .history-item:hover { background: #1e293b; }
+        .tx-details { display: flex; flex-direction: column; gap: 2px; }
+        .tx-title { font-weight: bold; color: var(--text-main); }
+        .tx-time { font-size: 0.7rem; color: var(--text-muted); }
+        .tx-amount { font-weight: 800; font-size: 0.95rem; }
+        .tx-spent { color: var(--danger); }
+        .tx-earned { color: var(--success); }
+
+        /* Modals */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+        .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; width: 100%; max-width: 380px; padding: 20px; text-align: center; position: relative; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; background: black; }
+
+        /* Receipt Modal Specific Styling */
+        .receipt-paper { background: #ffffff; color: #000000; border-radius: 12px; padding: 20px; text-align: left; font-family: 'Courier New', Courier, monospace; box-shadow: 0 5px 15px rgba(0,0,0,0.3); margin-bottom: 15px; }
+        .receipt-header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 12px; }
+        .receipt-title { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
+        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.85rem; }
+        .receipt-divider { border-top: 1px dashed #000; margin: 10px 0; }
+        .receipt-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; margin-top: 8px; }
+
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #334155; color: white; padding: 12px 20px; border-radius: 30px; border: 1px solid #475569; font-weight: bold; display: none; z-index: 10000; box-shadow: 0 8px 16px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 350px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- ================= 1. LOGIN SCREEN ================= -->
+        <div class="login-card" id="login-view">
+            <div class="login-title">💳 Mobile Wallet</div>
+            <div class="login-subtitle">Enter Account ID and Passcode</div>
+            
+            <input type="text" id="login-account-id" class="input-field" placeholder="Account ID (e.g. 10011)">
+            <input type="password" id="login-passcode" class="input-field" placeholder="Passcode (Min 6 chars: 123456)" maxlength="12">
+
+            <button class="btn btn-primary" onclick="handleLogin()">LOGIN</button>
+            <button class="btn btn-success" style="margin-top: 5px;" onclick="seedDatabase()">🌱 Seed Test Account (10011)</button>
+        </div>
+
+        <!-- ================= 2. MAIN WALLET DASHBOARD ================= -->
+        <div id="wallet-dashboard">
+            <div class="header-bar">
+                <span id="header-user-display">User Name</span>
+                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem;" onclick="handleLogout()">Logout</button>
+            </div>
+
+            <!-- Balance Display -->
+            <div class="balance-card">
+                <div class="balance-title">Available Wallet Balance</div>
+                <div class="balance-amount" id="wallet-balance-display">$0.00</div>
+                <div class="user-name" id="wallet-user-name">Loading...</div>
+                <div class="account-id-badge" id="wallet-account-id">ID: #00000</div>
+            </div>
+
+            <!-- Action Grid -->
+            <div class="btn-grid">
+                <button class="btn btn-warning btn-full" onclick="toggleTransferDrawer()">
+                    💸 TRANSFER FUNDS
+                </button>
+                <button class="btn btn-info btn-full" onclick="toggleHistoryDrawer()">
+                    📜 TRANSACTION HISTORY
+                </button>
+                <button class="btn btn-primary" onclick="togglePayDrawer()">
+                    💳 PAY WITH QR
+                </button>
+                <button class="btn btn-success" onclick="openScannerModal()">
+                    📷 SCAN QR
+                </button>
+            </div>
+
+            <!-- TRANSACTION HISTORY DRAWER -->
+            <div class="drawer" id="history-drawer">
+                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem; float: right;" onclick="toggleHistoryDrawer()">✕ Close</button>
+                <div style="clear: both;"></div>
+
+                <div class="card-title" style="margin-top: 10px;">📜 Recent Transactions</div>
+                <div class="history-list" id="history-list-container">
+                    <!-- Dynamic Transaction Logs -->
+                </div>
+            </div>
+
+            <!-- TRANSFER DRAWER -->
+            <div class="drawer" id="transfer-drawer">
+                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem; float: right;" onclick="toggleTransferDrawer()">✕ Close</button>
+                <div style="clear: both;"></div>
+
+                <div class="card-title" style="margin-top: 10px;">💸 Bank Transfer</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                    <input type="text" id="transfer-recipient-id" class="input-field" placeholder="Recipient Account ID (e.g., 20022)">
+                    <input type="number" id="transfer-amount" class="input-field" placeholder="Amount ($)" step="0.01" min="0.01">
+                    <button class="btn btn-warning" onclick="executeTransfer()">SEND MONEY</button>
+                </div>
+            </div>
+
+            <!-- BARCODE & QR DRAWER -->
+            <div class="drawer" id="pay-drawer">
+                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem; float: right;" onclick="togglePayDrawer()">✕ Hide</button>
+                <div style="clear: both;"></div>
+
+                <div class="card-title" style="margin-top: 10px;">📱 Account Barcode</div>
+                <div class="code-wrapper">
+                    <svg id="account-barcode-svg"></svg>
+                </div>
+
+                <hr style="border: none; border-top: 1px dashed var(--card-border); margin: 20px 0;">
+
+                <div class="card-title">⚡ Dynamic QR Code</div>
+                <div class="qr-wrapper">
+                    <div id="account-qr-code"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CAMERA SCANNER MODAL -->
+    <div class="modal-backdrop" id="scanner-modal">
+        <div class="modal-box">
+            <h3 style="margin-bottom: 12px;">Scan POS Merchant QR</h3>
+            <div id="reader"></div>
+            <button class="btn btn-danger" onclick="closeScannerModal()" style="width: 100%; margin-top: 15px;">Close Camera</button>
+        </div>
+    </div>
+
+    <!-- RECEIPT MODAL -->
+    <div class="modal-backdrop" id="receipt-modal">
+        <div class="modal-box">
+            <div class="receipt-paper" id="receipt-paper-content">
+                <div class="receipt-header">
+                    <div class="receipt-title">TRANSACTION RECEIPT</div>
+                    <div style="font-size: 0.75rem; color: #555; margin-top: 4px;">Digital Wallet System</div>
+                </div>
+                <div class="receipt-row"><span>Ref ID:</span><span id="rcpt-ref">-</span></div>
+                <div class="receipt-row"><span>Date:</span><span id="rcpt-date">-</span></div>
+                <div class="receipt-row"><span>Sender:</span><span id="rcpt-sender">-</span></div>
+                <div class="receipt-row"><span>Recipient:</span><span id="rcpt-recipient">-</span></div>
+                <div class="receipt-divider"></div>
+                <div class="receipt-row"><span>Type:</span><span id="rcpt-type">TRANSFER</span></div>
+                <div class="receipt-row"><span>Status:</span><span style="color: green; font-weight: bold;">SUCCESS</span></div>
+                <div class="receipt-divider"></div>
+                <div class="receipt-total"><span>TOTAL:</span><span id="rcpt-amount">$0.00</span></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" style="flex: 1;" onclick="window.print()">🖨️ PRINT</button>
+                <button class="btn btn-danger" style="flex: 1;" onclick="closeReceiptModal()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Notification</div>
+
+    <!-- FIREBASE SDK (Modular Imports) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ⚠️ REPLACE THIS WITH YOUR FIREBASE CONFIG FROM PROJECT SETTINGS
+       const firebaseConfig = {
+  apiKey: "AIzaSyA03_nm4Zk3RXmgIxKbxXP-pEGWnzmsQOE",
+  authDomain: "pos21-8f88f.firebaseapp.com",
+  databaseURL: "https://pos21-8f88f-default-rtdb.firebaseio.com",
+  projectId: "pos21-8f88f",
+  storageBucket: "pos21-8f88f.firebasestorage.app",
+  messagingSenderId: "49870857272",
+  appId: "1:49870857272:web:d349580c3d5ebb6f93f2cd"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Make Firebase instances accessible globally
+        window.FB = {
+            auth, db, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+        };
+
+        let balanceUnsubscribe = null;
+        let historyUnsubscribe = null;
+
+        // Auth Listener & Real-Time Firestore Sync
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('wallet-dashboard').style.display = 'flex';
+
+                // Real-time balance listener
+                const accountRef = doc(db, "accounts", user.uid);
+                balanceUnsubscribe = onSnapshot(accountRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        window.currentAccount = docSnap.data();
+                        window.currentAccount.uid = user.uid;
+                        renderDashboardUI();
+                    } else {
+                        fireToast("⚠️ Account profile record missing.");
+                    }
+                });
+
+            } else {
+                if (balanceUnsubscribe) balanceUnsubscribe();
+                if (historyUnsubscribe) historyUnsubscribe();
+                window.currentAccount = null;
+                document.getElementById('pay-drawer').style.display = 'none';
+                document.getElementById('transfer-drawer').style.display = 'none';
+                document.getElementById('history-drawer').style.display = 'none';
+                document.getElementById('wallet-dashboard').style.display = 'none';
+                document.getElementById('login-view').style.display = 'flex';
+            }
+        });
+    </script>
+
+    <script>
+        const displayChannel = new BroadcastChannel('pos_system_channel');
+        let html5QrcodeScanner = null;
+        window.currentAccount = null;
+
+        async function handleLogin() {
+            const accountId = document.getElementById('login-account-id').value.trim();
+            const passcode = document.getElementById('login-passcode').value.trim();
+
+            if (!accountId || !passcode) {
+                fireToast("❌ Enter Account ID and Passcode.");
+                return;
+            }
+
+            try {
+                const internalEmail = `${accountId}@wallet.local`;
+                await window.FB.signInWithEmailAndPassword(window.FB.auth, internalEmail, passcode);
+                document.getElementById('login-account-id').value = '';
+                document.getElementById('login-passcode').value = '';
+            } catch (err) {
+                fireToast("❌ Login Failed: " + err.message);
+            }
+        }
+
+        async function seedDatabase() {
+            const passcode = "123456";
+            const accountId = "10011";
+            const internalEmail = `${accountId}@wallet.local`;
+
+            try {
+                let user;
+                try {
+                    const cred = await window.FB.createUserWithEmailAndPassword(window.FB.auth, internalEmail, passcode);
+                    user = cred.user;
+                } catch (e) {
+                    const cred = await window.FB.signInWithEmailAndPassword(window.FB.auth, internalEmail, passcode);
+                    user = cred.user;
+                }
+
+                await window.FB.setDoc(window.FB.doc(window.FB.db, "accounts", user.uid), {
+                    accountId: accountId,
+                    name: "Staff Member (Alex)",
+                    balance: 40.00
+                });
+
+                fireToast("✅ Test Account 10011 Created ($40.00 Balance)!");
+            } catch (err) {
+                fireToast("❌ Seed Error: " + err.message);
+            }
+        }
+
+        async function handleLogout() {
+            await window.FB.signOut(window.FB.auth);
+            fireToast("Logged out successfully.");
+        }
+
+        function renderDashboardUI() {
+            if (!window.currentAccount) return;
+            document.getElementById('header-user-display').innerText = window.currentAccount.name;
+            document.getElementById('wallet-user-name').innerText = window.currentAccount.name;
+            document.getElementById('wallet-account-id').innerText = `Account ID: #${window.currentAccount.accountId}`;
+            document.getElementById('wallet-balance-display').innerText = `$${Number(window.currentAccount.balance).toFixed(2)}`;
+        }
+
+        /* TRANSACTION HISTORY & RECEIPT TRIGGER */
+        function toggleHistoryDrawer() {
+            document.getElementById('pay-drawer').style.display = 'none';
+            document.getElementById('transfer-drawer').style.display = 'none';
+            
+            const drawer = document.getElementById('history-drawer');
+            if (drawer.style.display === 'block') {
+                drawer.style.display = 'none';
+            } else {
+                listenToHistory();
+                drawer.style.display = 'block';
+            }
+        }
+
+        function listenToHistory() {
+            if (!window.currentAccount) return;
+            const container = document.getElementById('history-list-container');
+            
+            const qSender = window.FB.query(
+                window.FB.collection(window.FB.db, "transactions"), 
+                window.FB.where("senderId", "==", window.currentAccount.accountId)
+            );
+
+            window.FB.onSnapshot(qSender, (snapshot) => {
+                container.innerHTML = '';
+                if (snapshot.empty) {
+                    container.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding: 15px 0;">No transaction history found.</div>`;
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const t = docSnap.data();
+                    const isSpent = t.senderId === window.currentAccount.accountId;
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+
+                    const dateObj = t.timestamp ? t.timestamp.toDate() : new Date();
+                    const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    item.onclick = () => showReceipt({
+                        id: docSnap.id,
+                        date: dateObj.toLocaleString(),
+                        sender: t.senderName || t.senderId,
+                        recipient: t.recipientName || t.recipientId,
+                        type: isSpent ? 'PAYMENT / OUT' : 'TRANSFER / IN',
+                        amount: t.amount
+                    });
+
+                    item.innerHTML = `
+                        <div class="tx-details">
+                            <span class="tx-title">${isSpent ? '💸 Paid: ' + (t.recipientName || t.recipientId) : '💰 From: ' + (t.senderName || t.senderId)}</span>
+                            <span class="tx-time">${timeStr} • Click for Receipt</span>
+                        </div>
+                        <div class="tx-amount ${isSpent ? 'tx-spent' : 'tx-earned'}">
+                            ${isSpent ? '-' : '+'}$${Number(t.amount).toFixed(2)}
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            });
+        }
+
+        async function recordTransaction(senderId, senderName, recipientId, recipientName, amount) {
+            const docRef = await window.FB.addDoc(window.FB.collection(window.FB.db, "transactions"), {
+                senderId,
+                senderName,
+                recipientId,
+                recipientName,
+                amount,
+                timestamp: window.FB.serverTimestamp()
+            });
+
+            // Automatically prompt receipt after immediate transaction
+            showReceipt({
+                id: docRef.id.substring(0, 8).toUpperCase(),
+                date: new Date().toLocaleString(),
+                sender: senderName,
+                recipient: recipientName,
+                type: 'WALLET TRANSACTION',
+                amount: amount
+            });
+        }
+
+        /* RECEIPT MODAL FUNCTIONS */
+        function showReceipt(data) {
+            document.getElementById('rcpt-ref').innerText = data.id || 'TX-' + Math.floor(Math.random() * 89999 + 10000);
+            document.getElementById('rcpt-date').innerText = data.date || new Date().toLocaleDateString();
+            document.getElementById('rcpt-sender').innerText = data.sender;
+            document.getElementById('rcpt-recipient').innerText = data.recipient;
+            document.getElementById('rcpt-type').innerText = data.type || 'TRANSFER';
+            document.getElementById('rcpt-amount').innerText = `$${Number(data.amount).toFixed(2)}`;
+            
+            document.getElementById('receipt-modal').style.display = 'flex';
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').style.display = 'none';
+        }
+
+        /* TRANSFER FUNDS FUNCTIONALITY */
+        function toggleTransferDrawer() {
+            document.getElementById('pay-drawer').style.display = 'none';
+            document.getElementById('history-drawer').style.display = 'none';
+            const drawer = document.getElementById('transfer-drawer');
+            drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block';
+        }
+
+        async function executeTransfer() {
+            const recipientId = document.getElementById('transfer-recipient-id').value.trim();
+            const amount = parseFloat(document.getElementById('transfer-amount').value);
+
+            if (!recipientId || isNaN(amount) || amount <= 0) {
+                fireToast("❌ Please enter a valid recipient ID and amount.");
+                return;
+            }
+
+            if (recipientId === window.currentAccount.accountId) {
+                fireToast("❌ You cannot transfer funds to yourself.");
+                return;
+            }
+
+            if (window.currentAccount.balance < amount) {
+                fireToast(`❌ Insufficient funds! Balance: $${window.currentAccount.balance.toFixed(2)}`);
+                return;
+            }
+
+            try {
+                const q = window.FB.query(
+                    window.FB.collection(window.FB.db, "accounts"),
+                    window.FB.where("accountId", "==", recipientId)
+                );
+                const querySnap = await window.FB.getDocs(q);
+
+                if (querySnap.empty) {
+                    fireToast("❌ Recipient Account ID not found.");
+                    return;
+                }
+
+                const recipientDoc = querySnap.docs[0];
+                const recipientData = recipientDoc.data();
+
+                // 1. Deduct from Sender
+                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), {
+                    balance: window.FB.increment(-amount)
+                });
+
+                // 2. Add to Recipient
+                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", recipientDoc.id), {
+                    balance: window.FB.increment(amount)
+                });
+
+                document.getElementById('transfer-recipient-id').value = '';
+                document.getElementById('transfer-amount').value = '';
+                document.getElementById('transfer-drawer').style.display = 'none';
+
+                // 3. Record Transaction History & Trigger Receipt
+                await recordTransaction(
+                    window.currentAccount.accountId, 
+                    window.currentAccount.name, 
+                    recipientData.accountId, 
+                    recipientData.name, 
+                    amount
+                );
+
+                fireToast(`🎉 Sent $${amount.toFixed(2)} to ${recipientData.name}!`);
+            } catch (err) {
+                fireToast("❌ Transfer Error: " + err.message);
+            }
+        }
+
+        /* PAY WITH YOUR QR DRAWER */
+        function togglePayDrawer() {
+            document.getElementById('transfer-drawer').style.display = 'none';
+            document.getElementById('history-drawer').style.display = 'none';
+            const drawer = document.getElementById('pay-drawer');
+            if (drawer.style.display === 'block') {
+                drawer.style.display = 'none';
+            } else {
+                drawer.style.display = 'block';
+                renderCodes();
+            }
+        }
+
+        function renderCodes() {
+            try {
+                JsBarcode("#account-barcode-svg", window.currentAccount.accountId, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 50,
+                    displayValue: true
+                });
+            } catch(e) { console.error("Barcode Error", e); }
+
+            const qrContainer = document.getElementById('account-qr-code');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: JSON.stringify({
+                    type: "CUSTOMER_WALLET_PAY",
+                    accountId: window.currentAccount.accountId,
+                    name: window.currentAccount.name,
+                    timestamp: Date.now()
+                }),
+                width: 140,
+                height: 140,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        /* CAMERA SCANNER MODAL */
+        function openScannerModal() {
+            document.getElementById('pay-drawer').style.display = 'none';
+            document.getElementById('transfer-drawer').style.display = 'none';
+            document.getElementById('history-drawer').style.display = 'none';
+            document.getElementById('scanner-modal').style.display = 'flex';
+            
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 220, height: 220 } },
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                fireToast("❌ Camera access denied.");
+                closeScannerModal();
+            });
+        }
+
+        function closeScannerModal() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    document.getElementById('scanner-modal').style.display = 'none';
+                }).catch(() => {
+                    document.getElementById('scanner-modal').style.display = 'none';
+                });
+            } else {
+                document.getElementById('scanner-modal').style.display = 'none';
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            try {
+                const parsedData = JSON.parse(decodedText);
+                if (parsedData.type === "POS_INVOICE") {
+                    closeScannerModal();
+                    processInvoicePayment(parsedData.invoiceId, parsedData.amount);
+                } else {
+                    fireToast("❌ Invalid QR code.");
+                }
+            } catch (err) {
+                fireToast("❌ Unrecognized QR Format.");
+            }
+        }
+
+        function onScanFailure(error) {}
+
+        async function processInvoicePayment(invoiceId, amount) {
+            if (window.currentAccount.balance < amount) {
+                fireToast(`❌ Insufficient funds! Balance: $${window.currentAccount.balance.toFixed(2)}`);
+                return;
+            }
+
+            try {
+                // Deduct funds from current user in Firestore
+                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), {
+                    balance: window.FB.increment(-amount)
+                });
+
+                // Record invoice payment in history & popup receipt
+                await recordTransaction(
+                    window.currentAccount.accountId, 
+                    window.currentAccount.name, 
+                    "POS_TERMINAL", 
+                    "Merchant POS Store", 
+                    amount
+                );
+
+                // Broadcast payment confirmation to local POS screen
+                displayChannel.postMessage({
+                    type: 'WALLET_PAYMENT_SUCCESS',
+                    invoiceId: invoiceId,
+                    amount: amount,
+                    customerName: window.currentAccount.name
+                });
+
+                fireToast(`🎉 Payment of $${amount.toFixed(2)} successful!`);
+            } catch (err) {
+                fireToast("❌ Payment failed: " + err.message);
+            }
+        }
+
+        function fireToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3500);
+        }
+    </script>
+</body>
+</html>
