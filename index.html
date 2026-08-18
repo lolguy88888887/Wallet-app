@@ -22,25 +22,43 @@
             --card-border: #334155;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
+            --sidebar-width: 250px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background-color: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; }
+        body { background-color: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; position: relative; overflow-x: hidden; }
 
         .app-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; position: relative; }
 
-        /* Login Screen View */
-        .login-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px; }
-        .login-title { font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
-        .login-subtitle { font-size: 0.85rem; color: var(--text-muted); }
+        /* Sidebar Navigation Overlay Fixed */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); display: none; z-index: 1000; }
+        .sidebar { position: fixed; top: 0; left: -250px; width: var(--sidebar-width); height: 100%; background: var(--card-bg); border-right: 1px solid var(--card-border); z-index: 1001; transition: left 0.3s ease; display: flex; flex-direction: column; padding: 20px 15px; box-shadow: 4px 0 15px rgba(0,0,0,0.5); }
+        .sidebar.active { left: 0; }
+        .sidebar-overlay.active { display: block; }
+
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 1px solid var(--card-border); }
+        .sidebar-title { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
+        .close-sidebar-btn { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
+
+        .nav-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px; color: var(--text-main); text-decoration: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+        .nav-item:hover, .nav-item.active { background: #334155; color: var(--primary); }
+
+        /* Header Navigation Bar */
+        .header-bar { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--card-border); font-size: 0.85rem; }
+        .menu-btn { background: none; border: none; color: var(--text-main); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* PAGE VIEWS */
+        .page-view { display: none; flex-direction: column; gap: 20px; animation: fadeIn 0.2s ease-in-out; }
+        .page-view.active-page { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* General Card & Form Elements */
+        .page-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 25px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .page-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
+
         .input-field { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--card-border); background: #0f172a; color: white; font-size: 1rem; text-align: center; outline: none; }
         .input-field:focus { border-color: var(--primary); }
-
-        /* Wallet Dashboard View */
-        #wallet-dashboard { display: none; flex-direction: column; gap: 20px; }
-
-        /* Account Header */
-        .header-bar { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--card-border); font-size: 0.85rem; }
 
         /* Balance Card */
         .balance-card { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-radius: 20px; padding: 25px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
@@ -49,28 +67,21 @@
         .user-name { font-size: 1rem; opacity: 0.9; font-weight: 600; color: #e0f2fe; }
         .account-id-badge { font-size: 0.75rem; color: #93c5fd; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; }
 
-        /* Action Grid */
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        /* Buttons */
         .btn { padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.1s, background-color 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .btn:active { transform: scale(0.98); }
         .btn-primary { background: var(--primary); color: white; }
         .btn-success { background: var(--success); color: white; }
         .btn-warning { background: var(--warning); color: #000; }
-        .btn-info { background: var(--info); color: #000; }
         .btn-danger { background: var(--danger); color: white; }
-        .btn-full { grid-column: span 2; }
 
-        /* Collapsible Drawers */
-        .drawer { display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card-title { font-size: 0.85rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-        .code-wrapper { background: white; padding: 12px; border-radius: 12px; display: inline-block; width: 100%; margin: 5px 0; }
+        /* Code Containers */
+        .code-wrapper { background: white; padding: 12px; border-radius: 12px; display: inline-block; width: 100%; margin: 10px 0; }
         .code-wrapper svg { max-width: 100%; height: auto; }
         .qr-wrapper { display: flex; justify-content: center; background: white; padding: 12px; border-radius: 12px; margin: 10px auto; width: max-content; }
 
-        /* Transaction History Styles */
-        .history-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; max-height: 250px; overflow-y: auto; text-align: left; }
+        /* History List */
+        .history-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; text-align: left; }
         .history-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--card-border); font-size: 0.85rem; cursor: pointer; transition: background 0.2s; }
         .history-item:hover { background: #1e293b; }
         .tx-details { display: flex; flex-direction: column; gap: 2px; }
@@ -80,12 +91,12 @@
         .tx-spent { color: var(--danger); }
         .tx-earned { color: var(--success); }
 
-        /* Modals */
-        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
-        .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; width: 100%; max-width: 380px; padding: 20px; text-align: center; position: relative; }
+        /* Scanner Display */
         #reader { width: 100%; border-radius: 12px; overflow: hidden; background: black; }
 
-        /* Receipt Modal Specific Styling */
+        /* Receipt Modal */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+        .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; width: 100%; max-width: 380px; padding: 20px; text-align: center; position: relative; }
         .receipt-paper { background: #ffffff; color: #000000; border-radius: 12px; padding: 20px; text-align: left; font-family: 'Courier New', Courier, monospace; box-shadow: 0 5px 15px rgba(0,0,0,0.3); margin-bottom: 15px; }
         .receipt-header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 12px; }
         .receipt-title { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
@@ -98,104 +109,146 @@
 </head>
 <body>
 
+    <!-- SIDEBAR NAVIGATION MENU -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">☰ Navigation</div>
+            <button class="close-sidebar-btn" onclick="toggleSidebar()">✕</button>
+        </div>
+        <div class="nav-list">
+            <div class="nav-item" id="nav-dashboard" onclick="navigateToPage('dashboard-page')">
+                <span>💰</span> Balance Home
+            </div>
+            <div class="nav-item" id="nav-transfer" onclick="navigateToPage('transfer-page')">
+                <span>💸</span> Transfer Bar
+            </div>
+            <div class="nav-item" id="nav-history" onclick="navigateToPage('history-page')">
+                <span>📜</span> History Bar
+            </div>
+            <div class="nav-item" id="nav-payment" onclick="navigateToPage('payment-page')">
+                <span>💳</span> Payment Bar
+            </div>
+            <div class="nav-item" id="nav-scan" onclick="navigateToPage('scan-page')">
+                <span>📷</span> Scan QR Bar
+            </div>
+            <div class="nav-item" id="nav-google-wallet" onclick="navigateToPage('google-wallet-page')">
+                <span>🌐</span> Google Wallet Bar
+            </div>
+        </div>
+        <button class="btn btn-danger" style="width: 100%; margin-top: auto;" onclick="handleLogout()">Logout</button>
+    </div>
+
     <div class="app-container">
 
-        <!-- ================= 1. LOGIN SCREEN ================= -->
-        <div class="login-card" id="login-view">
-            <div class="login-title">💳 Mobile Wallet</div>
-            <div class="login-subtitle">Enter Account ID and Passcode</div>
-            
-            <input type="text" id="login-account-id" class="input-field" placeholder="Account ID (e.g. 10011)">
-            <input type="password" id="login-passcode" class="input-field" placeholder="Passcode (Min 6 chars: 123456)" maxlength="12">
+        <!-- ================= PAGE 0: LOGIN PAGE ================= -->
+        <div class="page-view" id="login-page">
+            <div class="page-card" style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-main);">💳 Mobile Wallet</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Enter Account ID and Passcode</div>
+                
+                <input type="text" id="login-account-id" class="input-field" placeholder="Account ID (e.g. 10011)">
+                <input type="password" id="login-passcode" class="input-field" placeholder="Passcode (Min 6 chars: 123456)" maxlength="12">
 
-            <button class="btn btn-primary" onclick="handleLogin()">LOGIN</button>
-            <button class="btn btn-success" style="margin-top: 5px;" onclick="seedDatabase()">🌱 Seed Test Account (10011)</button>
+                <button class="btn btn-primary" onclick="handleLogin()">LOGIN</button>
+                <button class="btn btn-success" style="margin-top: 5px;" onclick="seedDatabase()">🌱 Seed Test Account (10011)</button>
+            </div>
         </div>
 
-        <!-- ================= 2. MAIN WALLET DASHBOARD ================= -->
-        <div id="wallet-dashboard">
-            <div class="header-bar">
-                <span id="header-user-display">User Name</span>
-                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem;" onclick="handleLogout()">Logout</button>
-            </div>
+        <!-- HEADER BAR (VISIBLE ONLY WHEN LOGGED IN) -->
+        <div class="header-bar" id="app-header" style="display: none;">
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            <span id="header-user-display">User Name</span>
+            <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem;" onclick="handleLogout()">Logout</button>
+        </div>
 
-            <!-- Balance Display -->
+        <!-- ================= PAGE 1: DASHBOARD PAGE ================= -->
+        <div class="page-view" id="dashboard-page">
             <div class="balance-card">
                 <div class="balance-title">Available Wallet Balance</div>
                 <div class="balance-amount" id="wallet-balance-display">$0.00</div>
                 <div class="user-name" id="wallet-user-name">Loading...</div>
                 <div class="account-id-badge" id="wallet-account-id">ID: #00000</div>
             </div>
+        </div>
 
-            <!-- Action Grid -->
-            <div class="btn-grid">
-                <button class="btn btn-warning btn-full" onclick="toggleTransferDrawer()">
-                    💸 TRANSFER FUNDS
-                </button>
-                <button class="btn btn-info btn-full" onclick="toggleHistoryDrawer()">
-                    📜 TRANSACTION HISTORY
-                </button>
-                <button class="btn btn-primary" onclick="togglePayDrawer()">
-                    💳 PAY WITH QR
-                </button>
-                <button class="btn btn-success" onclick="openScannerModal()">
-                    📷 SCAN QR
-                </button>
-            </div>
-
-            <!-- TRANSACTION HISTORY DRAWER -->
-            <div class="drawer" id="history-drawer">
-                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem; float: right;" onclick="toggleHistoryDrawer()">✕ Close</button>
-                <div style="clear: both;"></div>
-
-                <div class="card-title" style="margin-top: 10px;">📜 Recent Transactions</div>
-                <div class="history-list" id="history-list-container">
-                    <!-- Dynamic Transaction Logs -->
-                </div>
-            </div>
-
-            <!-- TRANSFER DRAWER -->
-            <div class="drawer" id="transfer-drawer">
-                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem; float: right;" onclick="toggleTransferDrawer()">✕ Close</button>
-                <div style="clear: both;"></div>
-
-                <div class="card-title" style="margin-top: 10px;">💸 Bank Transfer</div>
-                
-                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+        <!-- ================= PAGE 2: TRANSFER PAGE ================= -->
+        <div class="page-view" id="transfer-page">
+            <div class="page-card">
+                <div class="page-title">💸 Bank Transfer</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
                     <input type="text" id="transfer-recipient-id" class="input-field" placeholder="Recipient Account ID (e.g., 20022)">
                     <input type="number" id="transfer-amount" class="input-field" placeholder="Amount ($)" step="0.01" min="0.01">
                     <button class="btn btn-warning" onclick="executeTransfer()">SEND MONEY</button>
                 </div>
             </div>
+        </div>
 
-            <!-- BARCODE & QR DRAWER -->
-            <div class="drawer" id="pay-drawer">
-                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 0.75rem; float: right;" onclick="togglePayDrawer()">✕ Hide</button>
-                <div style="clear: both;"></div>
+        <!-- ================= PAGE 3: TRANSACTION HISTORY PAGE ================= -->
+        <div class="page-view" id="history-page">
+            <div class="page-card">
+                <div class="page-title">📜 Transaction History</div>
+                <div class="history-list" id="history-list-container">
+                    <!-- Dynamic Transaction Logs -->
+                </div>
+            </div>
+        </div>
 
-                <div class="card-title" style="margin-top: 10px;">📱 Account Barcode</div>
+        <!-- ================= PAGE 4: PAYMENT QR PAGE ================= -->
+        <div class="page-view" id="payment-page">
+            <div class="page-card">
+                <div class="page-title">📱 Account Barcode</div>
                 <div class="code-wrapper">
                     <svg id="account-barcode-svg"></svg>
                 </div>
 
                 <hr style="border: none; border-top: 1px dashed var(--card-border); margin: 20px 0;">
 
-                <div class="card-title">⚡ Dynamic QR Code</div>
+                <div class="page-title">⚡ Dynamic Payment QR</div>
                 <div class="qr-wrapper">
                     <div id="account-qr-code"></div>
                 </div>
             </div>
         </div>
 
-    </div>
-
-    <!-- CAMERA SCANNER MODAL -->
-    <div class="modal-backdrop" id="scanner-modal">
-        <div class="modal-box">
-            <h3 style="margin-bottom: 12px;">Scan POS Merchant QR</h3>
-            <div id="reader"></div>
-            <button class="btn btn-danger" onclick="closeScannerModal()" style="width: 100%; margin-top: 15px;">Close Camera</button>
+        <!-- ================= PAGE 5: SCAN QR PAGE ================= -->
+        <div class="page-view" id="scan-page">
+            <div class="page-card">
+                <div class="page-title">📷 Scan POS Merchant QR</div>
+                <div id="reader"></div>
+            </div>
         </div>
+
+        <!-- ================= PAGE 6: GOOGLE WALLET PAGE ================= -->
+        <div class="page-view" id="google-wallet-page">
+            <div class="page-card">
+                <div class="page-title">🌐 Google Wallet Pass</div>
+                
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+                    Save your digital account pass directly to your device via Google Wallet.
+                </p>
+
+                <div style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px; text-align: left; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--primary);">MOBILE WALLET PASS</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);" id="gw-pass-id">ID: #00000</span>
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: 700; color: #fff;" id="gw-pass-name">User Name</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Status: Active Member</div>
+                </div>
+
+                <button class="btn btn-primary" style="width: 100%; background: #000; border: 1px solid #444; display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="saveToGoogleWallet()">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Save to Google Wallet</span>
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <!-- RECEIPT MODAL -->
@@ -226,42 +279,36 @@
 
     <div id="toast">Notification</div>
 
-    <!-- FIREBASE SDK (Modular Imports) -->
+    <!-- FIREBASE SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ⚠️ REPLACE THIS WITH YOUR FIREBASE CONFIG FROM PROJECT SETTINGS
-       const firebaseConfig = {
-  apiKey: "AIzaSyA03_nm4Zk3RXmgIxKbxXP-pEGWnzmsQOE",
-  authDomain: "pos21-8f88f.firebaseapp.com",
-  databaseURL: "https://pos21-8f88f-default-rtdb.firebaseio.com",
-  projectId: "pos21-8f88f",
-  storageBucket: "pos21-8f88f.firebasestorage.app",
-  messagingSenderId: "49870857272",
-  appId: "1:49870857272:web:d349580c3d5ebb6f93f2cd"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyA03_nm4Zk3RXmgIxKbxXP-pEGWnzmsQOE",
+            authDomain: "pos21-8f88f.firebaseapp.com",
+            databaseURL: "https://pos21-8f88f-default-rtdb.firebaseio.com",
+            projectId: "pos21-8f88f",
+            storageBucket: "pos21-8f88f.firebasestorage.app",
+            messagingSenderId: "49870857272",
+            appId: "1:49870857272:web:d349580c3d5ebb6f93f2cd"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Make Firebase instances accessible globally
         window.FB = {
             auth, db, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
         };
 
         let balanceUnsubscribe = null;
-        let historyUnsubscribe = null;
 
-        // Auth Listener & Real-Time Firestore Sync
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                document.getElementById('login-view').style.display = 'none';
-                document.getElementById('wallet-dashboard').style.display = 'flex';
+                document.getElementById('app-header').style.display = 'flex';
 
-                // Real-time balance listener
                 const accountRef = doc(db, "accounts", user.uid);
                 balanceUnsubscribe = onSnapshot(accountRef, (docSnap) => {
                     if (docSnap.exists()) {
@@ -273,23 +320,64 @@
                     }
                 });
 
+                navigateToPage('dashboard-page');
+
             } else {
                 if (balanceUnsubscribe) balanceUnsubscribe();
-                if (historyUnsubscribe) historyUnsubscribe();
                 window.currentAccount = null;
-                document.getElementById('pay-drawer').style.display = 'none';
-                document.getElementById('transfer-drawer').style.display = 'none';
-                document.getElementById('history-drawer').style.display = 'none';
-                document.getElementById('wallet-dashboard').style.display = 'none';
-                document.getElementById('login-view').style.display = 'flex';
+                document.getElementById('app-header').style.display = 'none';
+                stopCameraScanner();
+                
+                document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active-page'));
+                document.getElementById('login-page').classList.add('active-page');
+                toggleSidebar(false);
             }
         });
     </script>
 
     <script>
+        const ISSUER_ID = "3388000000023173404";
         const displayChannel = new BroadcastChannel('pos_system_channel');
         let html5QrcodeScanner = null;
         window.currentAccount = null;
+
+        function navigateToPage(pageId) {
+            toggleSidebar(false);
+            stopCameraScanner();
+
+            document.querySelectorAll('.page-view').forEach(page => {
+                page.classList.remove('active-page');
+            });
+
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active-page');
+            }
+
+            if (pageId === 'history-page') {
+                listenToHistory();
+            } else if (pageId === 'payment-page') {
+                renderCodes();
+            } else if (pageId === 'scan-page') {
+                startCameraScanner();
+            } else if (pageId === 'google-wallet-page') {
+                renderGoogleWalletPage();
+            }
+        }
+
+        function toggleSidebar(forceState) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const shouldOpen = forceState !== undefined ? forceState : !sidebar.classList.contains('active');
+
+            if (shouldOpen) {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+            } else {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
 
         async function handleLogin() {
             const accountId = document.getElementById('login-account-id').value.trim();
@@ -327,11 +415,11 @@
 
                 await window.FB.setDoc(window.FB.doc(window.FB.db, "accounts", user.uid), {
                     accountId: accountId,
-                    name: "Staff Member (Alex)",
-                    balance: 40.00
+                    name: "Alex",
+                    balance: 1365.50
                 });
 
-                fireToast("✅ Test Account 10011 Created ($40.00 Balance)!");
+                fireToast("✅ Test Account 10011 Created!");
             } catch (err) {
                 fireToast("❌ Seed Error: " + err.message);
             }
@@ -350,18 +438,20 @@
             document.getElementById('wallet-balance-display').innerText = `$${Number(window.currentAccount.balance).toFixed(2)}`;
         }
 
-        /* TRANSACTION HISTORY & RECEIPT TRIGGER */
-        function toggleHistoryDrawer() {
-            document.getElementById('pay-drawer').style.display = 'none';
-            document.getElementById('transfer-drawer').style.display = 'none';
-            
-            const drawer = document.getElementById('history-drawer');
-            if (drawer.style.display === 'block') {
-                drawer.style.display = 'none';
-            } else {
-                listenToHistory();
-                drawer.style.display = 'block';
+        function renderGoogleWalletPage() {
+            if (!window.currentAccount) return;
+            document.getElementById('gw-pass-name').innerText = window.currentAccount.name;
+            document.getElementById('gw-pass-id').innerText = `ID: #${window.currentAccount.accountId}`;
+        }
+
+        function saveToGoogleWallet() {
+            if (!window.currentAccount) {
+                fireToast("❌ Account profile not loaded.");
+                return;
             }
+            const saveUrl = `https://pay.google.com/gp/v/save/${ISSUER_ID}.demo_pass_${window.currentAccount.accountId}`;
+            fireToast("🚀 Redirecting to Google Wallet...");
+            window.open(saveUrl, '_blank');
         }
 
         function listenToHistory() {
@@ -422,7 +512,6 @@
                 timestamp: window.FB.serverTimestamp()
             });
 
-            // Automatically prompt receipt after immediate transaction
             showReceipt({
                 id: docRef.id.substring(0, 8).toUpperCase(),
                 date: new Date().toLocaleString(),
@@ -433,7 +522,6 @@
             });
         }
 
-        /* RECEIPT MODAL FUNCTIONS */
         function showReceipt(data) {
             document.getElementById('rcpt-ref').innerText = data.id || 'TX-' + Math.floor(Math.random() * 89999 + 10000);
             document.getElementById('rcpt-date').innerText = data.date || new Date().toLocaleDateString();
@@ -447,14 +535,6 @@
 
         function closeReceiptModal() {
             document.getElementById('receipt-modal').style.display = 'none';
-        }
-
-        /* TRANSFER FUNDS FUNCTIONALITY */
-        function toggleTransferDrawer() {
-            document.getElementById('pay-drawer').style.display = 'none';
-            document.getElementById('history-drawer').style.display = 'none';
-            const drawer = document.getElementById('transfer-drawer');
-            drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block';
         }
 
         async function executeTransfer() {
@@ -491,21 +571,17 @@
                 const recipientDoc = querySnap.docs[0];
                 const recipientData = recipientDoc.data();
 
-                // 1. Deduct from Sender
                 await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), {
                     balance: window.FB.increment(-amount)
                 });
 
-                // 2. Add to Recipient
                 await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", recipientDoc.id), {
                     balance: window.FB.increment(amount)
                 });
 
                 document.getElementById('transfer-recipient-id').value = '';
                 document.getElementById('transfer-amount').value = '';
-                document.getElementById('transfer-drawer').style.display = 'none';
 
-                // 3. Record Transaction History & Trigger Receipt
                 await recordTransaction(
                     window.currentAccount.accountId, 
                     window.currentAccount.name, 
@@ -515,25 +591,14 @@
                 );
 
                 fireToast(`🎉 Sent $${amount.toFixed(2)} to ${recipientData.name}!`);
+                navigateToPage('dashboard-page');
             } catch (err) {
                 fireToast("❌ Transfer Error: " + err.message);
             }
         }
 
-        /* PAY WITH YOUR QR DRAWER */
-        function togglePayDrawer() {
-            document.getElementById('transfer-drawer').style.display = 'none';
-            document.getElementById('history-drawer').style.display = 'none';
-            const drawer = document.getElementById('pay-drawer');
-            if (drawer.style.display === 'block') {
-                drawer.style.display = 'none';
-            } else {
-                drawer.style.display = 'block';
-                renderCodes();
-            }
-        }
-
         function renderCodes() {
+            if (!window.currentAccount) return;
             try {
                 JsBarcode("#account-barcode-svg", window.currentAccount.accountId, {
                     format: "CODE128",
@@ -560,13 +625,7 @@
             });
         }
 
-        /* CAMERA SCANNER MODAL */
-        function openScannerModal() {
-            document.getElementById('pay-drawer').style.display = 'none';
-            document.getElementById('transfer-drawer').style.display = 'none';
-            document.getElementById('history-drawer').style.display = 'none';
-            document.getElementById('scanner-modal').style.display = 'flex';
-            
+        function startCameraScanner() {
             html5QrcodeScanner = new Html5Qrcode("reader");
             html5QrcodeScanner.start(
                 { facingMode: "environment" },
@@ -575,20 +634,17 @@
                 onScanFailure
             ).catch(err => {
                 fireToast("❌ Camera access denied.");
-                closeScannerModal();
             });
         }
 
-        function closeScannerModal() {
+        function stopCameraScanner() {
             if (html5QrcodeScanner) {
                 html5QrcodeScanner.stop().then(() => {
                     html5QrcodeScanner.clear();
-                    document.getElementById('scanner-modal').style.display = 'none';
+                    html5QrcodeScanner = null;
                 }).catch(() => {
-                    document.getElementById('scanner-modal').style.display = 'none';
+                    html5QrcodeScanner = null;
                 });
-            } else {
-                document.getElementById('scanner-modal').style.display = 'none';
             }
         }
 
@@ -596,7 +652,7 @@
             try {
                 const parsedData = JSON.parse(decodedText);
                 if (parsedData.type === "POS_INVOICE") {
-                    closeScannerModal();
+                    stopCameraScanner();
                     processInvoicePayment(parsedData.invoiceId, parsedData.amount);
                 } else {
                     fireToast("❌ Invalid QR code.");
@@ -615,12 +671,10 @@
             }
 
             try {
-                // Deduct funds from current user in Firestore
                 await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), {
                     balance: window.FB.increment(-amount)
                 });
 
-                // Record invoice payment in history & popup receipt
                 await recordTransaction(
                     window.currentAccount.accountId, 
                     window.currentAccount.name, 
@@ -629,7 +683,6 @@
                     amount
                 );
 
-                // Broadcast payment confirmation to local POS screen
                 displayChannel.postMessage({
                     type: 'WALLET_PAYMENT_SUCCESS',
                     invoiceId: invoiceId,
@@ -638,6 +691,7 @@
                 });
 
                 fireToast(`🎉 Payment of $${amount.toFixed(2)} successful!`);
+                navigateToPage('dashboard-page');
             } catch (err) {
                 fireToast("❌ Payment failed: " + err.message);
             }
