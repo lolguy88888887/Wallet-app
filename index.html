@@ -444,14 +444,38 @@
             document.getElementById('gw-pass-id').innerText = `ID: #${window.currentAccount.accountId}`;
         }
 
-        function saveToGoogleWallet() {
+        async function saveToGoogleWallet() {
             if (!window.currentAccount) {
                 fireToast("❌ Account profile not loaded.");
                 return;
             }
-            const saveUrl = `https://pay.google.com/gp/v/save/${ISSUER_ID}.demo_pass_${window.currentAccount.accountId}`;
-            fireToast("🚀 Redirecting to Google Wallet...");
-            window.open(saveUrl, '_blank');
+
+            fireToast("⏳ Generating Google Wallet Pass...");
+
+            try {
+                // REPLACE THIS WITH YOUR DEPLOYED BACKEND ENDPOINT
+                const backendEndpoint = "https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/getGoogleWalletUrl";
+
+                const response = await fetch(backendEndpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        accountId: window.currentAccount.accountId,
+                        name: window.currentAccount.name
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.saveUrl) {
+                    fireToast("🚀 Opening Google Wallet...");
+                    window.open(data.saveUrl, '_blank');
+                } else {
+                    fireToast("❌ Pass creation error: " + (data.error || "Unknown error"));
+                }
+            } catch (err) {
+                fireToast("❌ Connection error: " + err.message);
+            }
         }
 
         function listenToHistory() {
