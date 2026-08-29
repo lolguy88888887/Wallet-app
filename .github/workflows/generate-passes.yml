@@ -1,13 +1,39 @@
 name: Generate Wallet Passes
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
+  workflow_dispatch: # Allows manual triggering from GitHub Actions tab
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Grants permission to commit pass-data.json back to repo
+
     steps:
-      - uses: actions/checkout@v4
-      # your build steps...
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Generate Pass JSON
+        env:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          # If using Node.js to generate JWT:
+          node generate_pass.js
+          
+          # OR if using Python:
+          # python generate_pass.py
+
+      - name: Commit and Push pass-data.json
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add pass-data.json
+          git commit -m "Auto-update pass-data.json" || echo "No changes to commit"
+          git push
