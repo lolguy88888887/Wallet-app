@@ -1,0 +1,11 @@
+{
+  "name": "wallet-app",
+  "version": "1.0.0",
+  "main": "generate_pass.js",
+  "scripts": {
+    "start": "node generate_pass.js"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  }
+}
