@@ -21,13 +21,25 @@ const ISSUER_ID = '3388000000023173404';
 const CLASS_ID = `${ISSUER_ID}.demo_pass_10011`;
 const OBJECT_ID = `${ISSUER_ID}.user_10011`;
 
-// Define Google Wallet Pass Claims
+// Define Google Wallet Pass Claims (Includes Class & Object definitions)
 const claims = {
   iss: serviceAccount.client_email,
   aud: 'google',
   origins: ['https://lolguy88888887.github.io'],
   typ: 'savetowallet',
   payload: {
+    // 1. Pre-define the Pass Class inside the JWT payload
+    genericClasses: [
+      {
+        id: CLASS_ID,
+        classTemplateInfo: {
+          cardTemplateInfo: {
+            cardColorHex: '#4285f4'
+          }
+        }
+      }
+    ],
+    // 2. Define the Pass Object referencing the Class above
     genericObjects: [
       {
         id: OBJECT_ID,
@@ -47,13 +59,13 @@ const claims = {
   }
 };
 
-// Sign JWT and output pass-data.json
+// Sign JWT and write pass-data.json
 try {
   const token = jwt.sign(claims, serviceAccount.private_key, { algorithm: 'RS256' });
   const saveUrl = `https://pay.google.com/gp/v/save/${token}`;
 
   fs.writeFileSync('pass-data.json', JSON.stringify({ url: saveUrl }, null, 2));
-  console.log('✅ Successfully created pass-data.json!');
+  console.log('✅ Successfully generated pass-data.json with Class and Object!');
 } catch (err) {
   console.error('❌ Failed to generate JWT token:', err.message);
   process.exit(1);
