@@ -3,13 +3,13 @@ name: Generate Wallet Passes
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Allows manual triggering from GitHub Actions tab
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Grants permission to commit pass-data.json back to repo
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -20,15 +20,13 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install jsonwebtoken
+        run: npm install jsonwebtoken
+
       - name: Generate Pass JSON
         env:
-          SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: |
-          # If using Node.js to generate JWT:
-          node generate_pass.js
-          
-          # OR if using Python:
-          # python generate_pass.py
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: node generate_pass.js
 
       - name: Commit and Push pass-data.json
         run: |
