@@ -1,38 +1,11 @@
-name: Generate Wallet Passes
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install jsonwebtoken
-        run: npm install jsonwebtoken
-
-      - name: Run Pass Generator
-        env:
-          SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
-        run: node generate_pass.js
-
-      - name: Commit and Push pass-data.json
+- name: Commit and Push pass-data.json
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add pass-data.json
+          git stash
           git pull --rebase
+          git stash pop || true
           git add pass-data.json
           git commit -m "Auto-update pass-data.json" || echo "No changes to commit"
           git push
