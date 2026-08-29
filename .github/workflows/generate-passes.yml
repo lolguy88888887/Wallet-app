@@ -23,15 +23,16 @@ jobs:
       - name: Install jsonwebtoken
         run: npm install jsonwebtoken
 
-      - name: Generate Pass JSON
+      - name: Run Pass Generator
         env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
         run: node generate_pass.js
 
       - name: Commit and Push pass-data.json
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase
           git add pass-data.json
           git commit -m "Auto-update pass-data.json" || echo "No changes to commit"
           git push
