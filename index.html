@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Mobile Wallet</title>
+    <title>Anint</title>
     <!-- Barcode & QR Code Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -30,7 +30,7 @@
         .app-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; position: relative; }
 
         /* Login Screen View */
-        .login-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px; }
+        .login-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 12px; }
         .login-title { font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
         .login-subtitle { font-size: 0.85rem; color: var(--text-muted); }
         .input-field { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--card-border); background: #0f172a; color: white; font-size: 1rem; text-align: center; outline: none; }
@@ -59,6 +59,7 @@
         .btn:active { transform: scale(0.98); }
         .btn-primary { background: var(--primary); color: white; }
         .btn-google { background: #ffffff; color: #1f2937; border: 1px solid #e5e7eb; }
+        .btn-facebook { background: #1877f2; color: #ffffff; }
         .btn-success { background: var(--success); color: white; }
         .btn-warning { background: var(--warning); color: #000; }
         .btn-info { background: var(--info); color: #000; }
@@ -115,13 +116,30 @@
                 Sign in with Google
             </button>
 
+            <button class="btn btn-facebook" onclick="handleFacebookLogin()">
+                📘 Sign in with Facebook
+            </button>
+
+            <div class="divider"><span>PHONE VERIFICATION</span></div>
+
+            <div id="phone-input-section" style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="tel" id="phone-number" class="input-field" placeholder="+1 123 456 7890">
+                <div id="recaptcha-container"></div>
+                <button class="btn btn-success" onclick="sendPhoneCode()">📱 Send Code</button>
+            </div>
+
+            <div id="phone-code-section" style="display: none; flex-direction: column; gap: 8px;">
+                <input type="text" id="phone-code" class="input-field" placeholder="Enter 6-digit Code">
+                <button class="btn btn-success" onclick="verifyPhoneCode()">Verify SMS Code</button>
+            </div>
+
             <div class="divider"><span>OR PASSCODE LOGIN</span></div>
 
             <input type="text" id="login-account-id" class="input-field" placeholder="Account ID (e.g. 10011)">
             <input type="password" id="login-passcode" class="input-field" placeholder="Passcode (Min 6 chars: 123456)" maxlength="12">
 
             <button class="btn btn-primary" onclick="handleLogin()">LOGIN WITH PASSCODE</button>
-            <button class="btn btn-success" style="margin-top: 5px;" onclick="seedDatabase()">🌱 Seed Test Account (10011)</button>
+            <button class="btn btn-info" style="margin-top: 5px;" onclick="seedDatabase()">🌱 Seed Test Account (10011)</button>
         </div>
 
         <!-- ================= 2. MAIN WALLET DASHBOARD ================= -->
@@ -241,7 +259,7 @@
     <!-- FIREBASE SDK (Modular Imports) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -257,10 +275,15 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
         const googleProvider = new GoogleAuthProvider();
+        const facebookProvider = new FacebookAuthProvider();
 
         window.FB = {
-            auth, db, doc, setDoc, getDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, googleProvider, signInWithPopup
+            auth, db, doc, setDoc, getDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp, 
+            signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, 
+            googleProvider, facebookProvider, signInWithPopup, 
+            RecaptchaVerifier, signInWithPhoneNumber
         };
 
         let balanceUnsubscribe = null;
@@ -274,18 +297,17 @@
 
                 const accountRef = doc(db, "accounts", user.uid);
                 
-                // If account profile doesn't exist yet (e.g. new Google user), create it
+                // Auto-create document for new users across any login provider
                 const docSnap = await getDoc(accountRef);
                 if (!docSnap.exists()) {
                     const generatedId = Math.floor(10000 + Math.random() * 90000).toString();
                     await setDoc(accountRef, {
                         accountId: generatedId,
-                        name: user.displayName || user.email.split('@')[0],
+                        name: user.displayName || user.phoneNumber || user.email.split('@')[0],
                         balance: 50.00
                     });
                 }
 
-                // Real-time balance listener
                 balanceUnsubscribe = onSnapshot(accountRef, (snap) => {
                     if (snap.exists()) {
                         window.currentAccount = snap.data();
@@ -312,8 +334,10 @@
     <script>
         const displayChannel = new BroadcastChannel('pos_system_channel');
         let html5QrcodeScanner = null;
+        let confirmationResult = null;
         window.currentAccount = null;
 
+        /* GOOGLE & FACEBOOK LOGIN */
         async function handleGoogleLogin() {
             try {
                 await window.FB.signInWithPopup(window.FB.auth, window.FB.googleProvider);
@@ -322,6 +346,51 @@
             }
         }
 
+        async function handleFacebookLogin() {
+            try {
+                await window.FB.signInWithPopup(window.FB.auth, window.FB.facebookProvider);
+            } catch (err) {
+                fireToast("❌ Facebook Sign-In Failed: " + err.message);
+            }
+        }
+
+        /* PHONE AUTHENTICATION */
+        function initRecaptcha() {
+            if (!window.recaptchaVerifier) {
+                window.recaptchaVerifier = new window.FB.RecaptchaVerifier(window.FB.auth, 'recaptcha-container', {
+                    'size': 'invisible'
+                });
+            }
+        }
+
+        async function sendPhoneCode() {
+            const phoneNumber = document.getElementById('phone-number').value.trim();
+            if (!phoneNumber) return fireToast("❌ Please enter phone number with country code (e.g. +1...).");
+
+            try {
+                initRecaptcha();
+                confirmationResult = await window.FB.signInWithPhoneNumber(window.FB.auth, phoneNumber, window.recaptchaVerifier);
+                document.getElementById('phone-input-section').style.display = 'none';
+                document.getElementById('phone-code-section').style.display = 'flex';
+                fireToast("📲 Verification code sent!");
+            } catch (err) {
+                fireToast("❌ SMS Failed: " + err.message);
+            }
+        }
+
+        async function verifyPhoneCode() {
+            const code = document.getElementById('phone-code').value.trim();
+            if (!code || !confirmationResult) return fireToast("❌ Enter the code sent to your phone.");
+
+            try {
+                await confirmationResult.confirm(code);
+                fireToast("✅ Phone verified!");
+            } catch (err) {
+                fireToast("❌ Invalid Code: " + err.message);
+            }
+        }
+
+        /* PASSCODE & SEEDING */
         async function handleLogin() {
             const accountId = document.getElementById('login-account-id').value.trim();
             const passcode = document.getElementById('login-passcode').value.trim();
