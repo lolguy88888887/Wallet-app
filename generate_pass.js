@@ -1,7 +1,6 @@
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 
-// Load key from GitHub Secret (SERVICE_ACCOUNT_KEY)
 const rawKey = process.env.SERVICE_ACCOUNT_KEY;
 
 if (!rawKey) {
@@ -19,27 +18,17 @@ try {
 
 const ISSUER_ID = '3388000000023173404';
 const CLASS_ID = `${ISSUER_ID}.demo_pass_10011`;
-const OBJECT_ID = `${ISSUER_ID}.user_10011`;
 
-// Define Google Wallet Pass Claims (Includes Class & Object definitions)
+// Create a unique object ID
+const UNIQUE_SUFFIX = Date.now();
+const OBJECT_ID = `${ISSUER_ID}.user_${UNIQUE_SUFFIX}`;
+
 const claims = {
   iss: serviceAccount.client_email,
   aud: 'google',
   origins: ['https://lolguy88888887.github.io'],
   typ: 'savetowallet',
   payload: {
-    // 1. Pre-define the Pass Class inside the JWT payload
-    genericClasses: [
-      {
-        id: CLASS_ID,
-        classTemplateInfo: {
-          cardTemplateInfo: {
-            cardColorHex: '#4285f4'
-          }
-        }
-      }
-    ],
-    // 2. Define the Pass Object referencing the Class above
     genericObjects: [
       {
         id: OBJECT_ID,
@@ -53,19 +42,24 @@ const claims = {
         },
         subheader: {
           defaultValue: { language: 'en', value: 'Account #10011' }
+        },
+        // ADD BARCODE HERE
+        barcode: {
+          type: 'QR_CODE', // Options: 'QR_CODE', 'CODE_128', 'AZTEC', 'PDF_417'
+          value: '10011-ALEX-2026', // The raw text/number stored in the barcode
+          alternateText: '10011-ALEX-2026' // Text displayed directly below the code
         }
       }
     ]
   }
 };
 
-// Sign JWT and write pass-data.json
 try {
   const token = jwt.sign(claims, serviceAccount.private_key, { algorithm: 'RS256' });
   const saveUrl = `https://pay.google.com/gp/v/save/${token}`;
 
   fs.writeFileSync('pass-data.json', JSON.stringify({ url: saveUrl }, null, 2));
-  console.log('✅ Successfully generated pass-data.json with Class and Object!');
+  console.log('✅ Successfully created pass-data.json with Barcode!');
 } catch (err) {
   console.error('❌ Failed to generate JWT token:', err.message);
   process.exit(1);
