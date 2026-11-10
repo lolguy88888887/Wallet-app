@@ -654,7 +654,7 @@
             }
         }
 
-        function renderCodes() {
+       function renderCodes() {
             if (!window.currentAccount) return;
             try {
                 JsBarcode("#account-barcode-svg", window.currentAccount.accountId, {
@@ -667,21 +667,24 @@
 
             const qrContainer = document.getElementById('account-qr-code');
             qrContainer.innerHTML = '';
+            
+            // JSON бичвэр биш зөвхөн ID-гаа богинохон хэлбэрээр дамжуулах 
+            // (Эсвэл вебкам камер дээр уншихад хялбар байх үүднээс форматлах)
+            const qrPayload = JSON.stringify({
+                type: "CUSTOMER_WALLET_PAY",
+                accountId: window.currentAccount.accountId
+            });
+
             new QRCode(qrContainer, {
-                text: JSON.stringify({
-                    type: "CUSTOMER_WALLET_PAY",
-                    accountId: window.currentAccount.accountId,
-                    name: window.currentAccount.name,
-                    timestamp: Date.now()
-                }),
-                width: 140,
-                height: 140,
+                text: qrPayload,
+                width: 180,  // Хэмжээг жаахан томруулах
+                height: 180,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
+                // CorrectLevel.L (Low) ашиглавал QR маш цөөхөн цэгтэй, том болж вебкам шууд ямар ч гялбаагүйгээр уншина
+                correctLevel: QRCode.CorrectLevel.L 
             });
         }
-
         function startCameraScanner() {
             html5QrcodeScanner = new Html5Qrcode("reader");
             html5QrcodeScanner.start(
