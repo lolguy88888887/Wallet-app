@@ -728,7 +728,8 @@
             }
 
             try {
-                await window.FB.updateDoc(window.FB.doc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid)), {
+                // Зөв болгож зассан хэсэг:
+                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), {
                     balance: window.FB.increment(-amount)
                 });
 
