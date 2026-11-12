@@ -397,7 +397,7 @@
             if (window.currentAccount.balance < amount) return fireToast("❌ Insufficient funds.");
 
             try {
-                // ЗӨВХӨН ЭНЭ ХЭСГИЙГ ЗАСНА (document замыг зөв заах)
+                // accounts цуглуулга доторх яг тухайн хэрэглэгчийн UID баримтыг зөв заах
                 const accountDocRef = window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid);
                 
                 await window.FB.updateDoc(accountDocRef, {
@@ -406,7 +406,7 @@
                 
                 displayChannel.postMessage({ type: 'WALLET_PAYMENT_SUCCESS', invoiceId: invoiceId, amount: amount, customerName: window.currentAccount.name });
                 
-                // 🎉 Ногоон зөв тэмдэгтэй цонхыг гаргах
+                // 🎉 Амжилттай болсон үед ногоон зөв тэмдэгтэй цонхыг гаргах
                 document.getElementById('scan-success-amount').innerText = `$${Number(amount).toFixed(2)}`;
                 document.getElementById('success-modal').style.display = 'flex';
 
