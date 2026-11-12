@@ -393,11 +393,14 @@
         }
 
         // 🎉 КАМЕРААР QR УНШИЖ ТӨЛӨГДМӨГЦ НОГООН ЗӨВ ТЭМДЭГ ХАРУУЛАХ
-        async function processInvoicePayment(invoiceId, amount) {
+       async function processInvoicePayment(invoiceId, amount) {
             if (window.currentAccount.balance < amount) return fireToast("❌ Insufficient funds.");
 
             try {
-                await window.FB.updateDoc(window.FB.doc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid)), {
+                // ЗӨВХӨН ЭНЭ ХЭСГИЙГ ЗАСНА (document замыг зөв заах)
+                const accountDocRef = window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid);
+                
+                await window.FB.updateDoc(accountDocRef, {
                     balance: window.FB.increment(-amount)
                 });
                 
