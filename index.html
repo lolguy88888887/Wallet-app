@@ -3,31 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurable POS - Staff Panel</title>
-
-    <!-- External Libraries (Barcode Generators) -->
+    <title>Customer Mobile Wallet</title>
+    <!-- Barcode & QR Code Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-
-    <!-- Firebase Core & Firestore SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyA03_nm4Zk3RXmgIxKbxXP-pEGWnzmsQOE",
-        authDomain: "pos21-8f88f.firebaseapp.com",
-        databaseURL: "https://pos21-8f88f-default-rtdb.firebaseio.com",
-        projectId: "pos21-8f88f",
-        storageBucket: "pos21-8f88f.firebasestorage.app",
-        messagingSenderId: "49870857272",
-        appId: "1:49870857272:web:d349580c3d5ebb6f93f2cd"
-      };
-
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      const db = firebase.firestore();
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
         :root {
@@ -35,819 +15,455 @@
             --primary-dark: #1d4ed8;
             --success: #22c55e;
             --danger: #ef4444;
-            --warning: #f97316;
+            --warning: #f59e0b;
+            --info: #06b6d4;
             --dark-bg: #0f172a;
             --card-bg: #1e293b;
             --card-border: #334155;
-            --input-bg: #0f172a;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
+            --sidebar-width: 250px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background-color: var(--dark-bg); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; }
+        body { background-color: var(--dark-bg); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 20px; position: relative; overflow-x: hidden; }
 
-        nav { background-color: #020617; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); }
-        .nav-brand { font-size: 1.4rem; font-weight: bold; }
-        .nav-links { display: flex; gap: 10px; align-items: center; }
-        .nav-btn { background: transparent; border: 1px solid var(--card-border); color: var(--text-main); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s; text-decoration: none; }
-        .nav-btn:hover, .nav-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+        .app-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; position: relative; }
 
-        .main-content { flex: 1; padding: 25px; max-width: 1300px; width: 100%; margin: 0 auto; }
-        .page-view { display: none; }
-        .page-view.active-view { display: block; }
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); margin-bottom: 25px; }
-        .split-layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 25px; }
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); display: none; z-index: 1000; }
+        .sidebar { position: fixed; top: 0; left: -250px; width: var(--sidebar-width); height: 100%; background: var(--card-bg); border-right: 1px solid var(--card-border); z-index: 1001; transition: left 0.3s ease; display: flex; flex-direction: column; padding: 20px 15px; box-shadow: 4px 0 15px rgba(0,0,0,0.5); }
+        .sidebar.active { left: 0; }
+        .sidebar-overlay.active { display: block; }
 
-        @media (max-width: 900px) { .split-layout { grid-template-columns: 1fr; } }
-        h2 { margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid var(--card-border); color: var(--text-main); }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 1px solid var(--card-border); }
+        .sidebar-title { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
+        .close-sidebar-btn { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
 
-        .form-inline { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: var(--text-muted); }
-        input, select { width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); border-radius: 6px; font-size: 1rem; outline: none; }
+        .nav-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border-radius: 10px; color: var(--text-main); text-decoration: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+        .nav-item:hover, .nav-item.active { background: #334155; color: var(--primary); }
 
-        .btn { padding: 10px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; display: inline-block; transition: background-color 0.2s; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--card-border); font-size: 0.85rem; }
+        .menu-btn { background: none; border: none; color: var(--text-main); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .page-view { display: none; flex-direction: column; gap: 20px; animation: fadeIn 0.2s ease-in-out; }
+        .page-view.active-page { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 25px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .page-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .input-field { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--card-border); background: #0f172a; color: white; font-size: 1rem; text-align: center; outline: none; }
+        .input-field:focus { border-color: var(--primary); }
+
+        .balance-card { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-radius: 20px; padding: 25px 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .balance-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: #93c5fd; font-weight: 600; }
+        .balance-amount { font-size: 2.5rem; font-weight: 800; margin: 8px 0; color: white; }
+        .user-name { font-size: 1rem; opacity: 0.9; font-weight: 600; color: #e0f2fe; }
+        .account-id-badge { font-size: 0.75rem; color: #93c5fd; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; }
+
+        .btn { padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.1s, background-color 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .btn:active { transform: scale(0.98); }
         .btn-primary { background: var(--primary); color: white; }
         .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: #000; }
         .btn-danger { background: var(--danger); color: white; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-block { width: 100%; display: block; }
-        .btn-sm { padding: 6px 10px; font-size: 0.8rem; }
-        .btn-lg { padding: 18px 24px; font-size: 1.3rem; }
 
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-bottom: 25px; }
-        .product-item { background: #0f172a; border: 1px solid var(--card-border); border-radius: 8px; padding: 15px 10px; text-align: center; cursor: pointer; transition: transform 0.1s, border-color 0.2s; position: relative; }
-        .product-item:hover { border-color: var(--primary); transform: scale(1.02); }
-        .barcode-tag { font-size: 0.7rem; background: var(--card-border); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 5px; font-family: monospace; }
+        .code-wrapper { background: white; padding: 12px; border-radius: 12px; display: inline-block; width: 100%; margin: 10px 0; }
+        .qr-wrapper { display: flex; justify-content: center; background: white; padding: 12px; border-radius: 12px; margin: 10px auto; width: max-content; }
 
-        .cart-table, .inventory-table { width: 100%; border-collapse: collapse; }
-        .cart-table th, .cart-table td, .inventory-table th, .inventory-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--card-border); }
-        .cart-table th, .inventory-table th { color: var(--text-muted); }
-        .summary-box { background: #0f172a; padding: 15px; border-radius: 8px; font-size: 1.3rem; font-weight: bold; display: flex; justify-content: space-between; margin: 20px 0; border: 1px solid var(--card-border); border-left: 5px solid var(--primary); }
+        .history-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; text-align: left; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--card-border); font-size: 0.85rem; cursor: pointer; transition: background 0.2s; }
 
-        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative; color: var(--text-main); }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; background: black; }
+
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
+        .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; width: 100%; max-width: 380px; padding: 20px; text-align: center; position: relative; }
         
-        .numpad-container { display: flex; flex-direction: column; gap: 10px; }
-        .numpad-display { background: #0f172a; border: 1px solid var(--card-border); color: #38bdf8; font-size: 1.5rem; font-weight: bold; text-align: center; padding: 12px; border-radius: 8px; font-family: monospace; letter-spacing: 2px; }
-        .numpad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .num-btn { background: #0f172a; border: 1px solid var(--card-border); color: #fff; font-size: 1.2rem; font-weight: bold; padding: 14px; border-radius: 8px; cursor: pointer; transition: background 0.1s; }
-        .num-btn:hover { background: #334155; }
-        .num-btn:active { background: var(--primary); }
-
-        .scanner-status { display: inline-flex; align-items: center; gap: 6px; background: #064e3b; color: #a7f3d0; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; border: 1px solid #047857; }
-        .scanner-pulse { width: 8px; height: 8px; background: #34d399; border-radius: 50%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(0.9); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.4; } 100% { transform: scale(0.9); opacity: 1; } }
-
-        #toast { position: fixed; bottom: 25px; right: 25px; padding: 15px 25px; background: #334155; color: white; border-radius: 8px; display: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); z-index: 99999; font-weight: 500; border: 1px solid #475569; }
-        .display-link-box { display: flex; align-items: center; justify-content: space-between; background: #1e3a8a; color: white; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; border: 1px solid #2563eb; }
-
-        .login-wrapper { max-width: 420px; margin: 60px auto 0 auto; }
-        .login-pin-display { background: #0f172a; border: 1px solid var(--card-border); color: #f8fafc; font-size: 2rem; font-weight: bold; text-align: center; padding: 12px; border-radius: 8px; font-family: monospace; letter-spacing: 12px; margin-bottom: 15px; }
-        .staff-badge { background: #1e3a8a; color: #93c5fd; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; }
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #334155; color: white; padding: 12px 20px; border-radius: 30px; border: 1px solid #475569; font-weight: bold; display: none; z-index: 10000; box-shadow: 0 8px 16px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 350px; }
     </style>
 </head>
 <body>
 
-    <nav id="top-nav" style="display: none;">
-        <div class="nav-brand">🏪 Staff POS Terminal</div>
-        <div class="nav-links">
-            <span id="logged-staff-name" class="staff-badge">👤 Staff: Cashier</span>
-            <button class="nav-btn active" onclick="switchView('register-view', this)">POS Register</button>
-            <a href="topup.html" class="nav-btn">Top-Up</a>
-            <button class="nav-btn" onclick="switchView('customer-gen-view', this)">+ Create Profile</button>
-            <button class="nav-btn" onclick="switchView('inventory-view', this)">⚙️ Manage Products</button>
-            <button class="nav-btn" onclick="logoutStaff()" style="border-color: var(--danger); color: var(--danger);">🔒 Lock Terminal</button>
+    <!-- SIDEBAR NAVIGATION MENU -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">☰ Navigation</div>
+            <button class="close-sidebar-btn" onclick="toggleSidebar()">✕</button>
         </div>
-    </nav>
+        <div class="nav-list">
+            <div class="nav-item" onclick="navigateToPage('dashboard-page')"><span>💰</span> Balance Home</div>
+            <div class="nav-item" onclick="navigateToPage('transfer-page')"><span>💸</span> Transfer Bar</div>
+            <div class="nav-item" onclick="navigateToPage('history-page')"><span>📜</span> History Bar</div>
+            <div class="nav-item" onclick="navigateToPage('payment-page')"><span>💳</span> Payment Bar</div>
+            <div class="nav-item" onclick="navigateToPage('scan-page')"><span>📷</span> Scan QR Bar</div>
+            <div class="nav-item" onclick="navigateToPage('pin-settings-page')"><span>🔐</span> Change PIN Code</div>
+        </div>
+        <button class="btn btn-danger" style="width: 100%; margin-top: auto;" onclick="handleLogout()">Logout</button>
+    </div>
 
-    <div class="main-content">
-        <!-- LOGIN SCREEN VIEW -->
-        <div id="login-view" class="page-view active-view">
-            <div class="card login-wrapper">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 3rem;">🔒</div>
-                    <h2 style="border: none; padding: 0; margin-bottom: 5px;">Staff Terminal Lock</h2>
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">Enter 4-Digit Staff PIN to Unlock</p>
-                </div>
+    <div class="app-container">
 
-                <div class="form-group">
-                    <label>Select Staff Member</label>
-                    <select id="staff-select-input">
-                        <option value="Cashier 1">Cashier 1 (Default PIN: 1234)</option>
-                        <option value="Manager Admin">Manager Admin (Default PIN: 1234)</option>
-                    </select>
-                </div>
-
-                <div class="login-pin-display" id="login-pin-masked">••••</div>
-
-                <div class="numpad-grid" style="margin-bottom: 15px;">
-                    <button class="num-btn" onclick="pressLoginPin('1')">1</button>
-                    <button class="num-btn" onclick="pressLoginPin('2')">2</button>
-                    <button class="num-btn" onclick="pressLoginPin('3')">3</button>
-                    <button class="num-btn" onclick="pressLoginPin('4')">4</button>
-                    <button class="num-btn" onclick="pressLoginPin('5')">5</button>
-                    <button class="num-btn" onclick="pressLoginPin('6')">6</button>
-                    <button class="num-btn" onclick="pressLoginPin('7')">7</button>
-                    <button class="num-btn" onclick="pressLoginPin('8')">8</button>
-                    <button class="num-btn" onclick="pressLoginPin('9')">9</button>
-                    <button class="num-btn" style="color:var(--danger);" onclick="pressLoginPin('C')">C</button>
-                    <button class="num-btn" onclick="pressLoginPin('0')">0</button>
-                    <button class="num-btn" style="color:var(--warning);" onclick="pressLoginPin('DEL')">⌫</button>
-                </div>
-
-                <button class="btn btn-primary btn-block btn-lg" onclick="attemptLogin()">Unlock Terminal</button>
+        <!-- LOGIN PAGE -->
+        <div class="page-view" id="login-page">
+            <div class="page-card" style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="font-size: 1.4rem; font-weight: 700;">💳 Mobile Wallet</div>
+                <input type="text" id="login-account-id" class="input-field" placeholder="Account ID (e.g. 10011)">
+                <input type="password" id="login-passcode" class="input-field" placeholder="Passcode (Min 6 chars: 123456)" maxlength="12">
+                <button class="btn btn-primary" onclick="handleLogin()">LOGIN</button>
+                <button class="btn btn-success" onclick="seedDatabase()">🌱 Seed Test Account (10011)</button>
             </div>
         </div>
 
-        <!-- POS REGISTER VIEW -->
-        <div id="register-view" class="page-view">
-            <div class="display-link-box">
-                <span>🖥️ Dual Screen Mode Active</span>
-                <a href="customer_display.html" target="_blank" class="btn btn-primary btn-sm" style="background:#fff; color:#0f172a;">Open Customer View Tab</a>
-            </div>
+        <!-- HEADER BAR -->
+        <div class="header-bar" id="app-header" style="display: none;">
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            <span id="header-user-display">User Name</span>
+            <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem;" onclick="handleLogout()">Logout</button>
+        </div>
 
-            <div class="scanner-status">
-                <div class="scanner-pulse"></div>
-                <span>USB Barcode Scanner Ready</span>
+        <!-- DASHBOARD -->
+        <div class="page-view" id="dashboard-page">
+            <div class="balance-card">
+                <div class="balance-title">Available Wallet Balance</div>
+                <div class="balance-amount" id="wallet-balance-display">$0.00</div>
+                <div class="user-name" id="wallet-user-name">Loading...</div>
+                <div class="account-id-badge" id="wallet-account-id">ID: #00000</div>
             </div>
-            
-            <div class="split-layout">
-                <div>
-                    <div class="card">
-                        <h2>Menu Products Matrix</h2>
-                        <div class="product-grid" id="pos-menu-grid"></div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="card">
-                        <h2>Current Order Invoice</h2>
-                        <table class="cart-table">
-                            <thead>
-                                <tr><th>Item</th><th>Qty</th><th>Subtotal</th></tr>
-                            </thead>
-                            <tbody id="cart-rows">
-                                <tr><td colspan="3" style="text-align:center; color:var(--text-muted);">Cart is empty</td></tr>
-                            </tbody>
-                        </table>
-                        
-                        <div class="summary-box">
-                            <span>Total Due:</span>
-                            <span id="cart-total-display">$0.00</span>
-                        </div>
+        </div>
 
-                        <button class="btn btn-success btn-block btn-lg" id="checkout-trigger-btn" onclick="openCheckoutModal()" style="margin-bottom: 12px;">🔒 Proceed to Checkout</button>
-                        <button class="btn btn-danger btn-block" onclick="clearCart()" style="padding: 8px; font-size:0.85rem;">Void Cart Order</button>
-                    </div>
+        <!-- TRANSFER -->
+        <div class="page-view" id="transfer-page">
+            <div class="page-card">
+                <div class="page-title">💸 Bank Transfer</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <input type="text" id="transfer-recipient-id" class="input-field" placeholder="Recipient Account ID">
+                    <input type="number" id="transfer-amount" class="input-field" placeholder="Amount ($)" step="0.01">
+                    <button class="btn btn-warning" onclick="executeTransfer()">SEND MONEY</button>
                 </div>
             </div>
         </div>
 
-        <!-- CHECKOUT MODAL (КАМЕРГҮЙ ЦЭВЭРХЭН NUMPAD БОЛОН НОГООН ЗӨВ ТЭМДЭГТЭЙ) -->
-        <div class="modal-backdrop" id="checkout-modal">
-            <div class="modal-content" style="text-align: center;">
-                <button class="btn btn-danger btn-sm" onclick="closeCheckoutModal()" style="position: absolute; top: 15px; right: 15px; z-index: 10;">✕ Cancel</button>
-                
-                <!-- 1. ТӨЛБӨР ХҮЛЭЭЖ БАЙГАА ЦОНХ -->
-                <div id="modal-waiting-content" style="display: block;">
-                    <h3 style="border: none; padding: 0; margin-bottom: 2px;">Complete Payment</h3>
-                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary); margin: 8px 0 15px 0;" id="modal-total-display">$0.00</div>
-
-                    <div class="numpad-container">
-                        <label style="margin-bottom:2px; text-align: left;">Enter or Scan Account ID:</label>
-                        <div class="numpad-display" id="numpad-input-val">------</div>
-                        
-                        <div class="numpad-grid" style="margin-bottom: 15px;">
-                            <button class="num-btn" onclick="pressNumpad('1')">1</button>
-                            <button class="num-btn" onclick="pressNumpad('2')">2</button>
-                            <button class="num-btn" onclick="pressNumpad('3')">3</button>
-                            <button class="num-btn" onclick="pressNumpad('4')">4</button>
-                            <button class="num-btn" onclick="pressNumpad('5')">5</button>
-                            <button class="num-btn" onclick="pressNumpad('6')">6</button>
-                            <button class="num-btn" onclick="pressNumpad('7')">7</button>
-                            <button class="num-btn" onclick="pressNumpad('8')">8</button>
-                            <button class="num-btn" onclick="pressNumpad('9')">9</button>
-                            <button class="num-btn" style="color:var(--danger);" onclick="pressNumpad('C')">C</button>
-                            <button class="num-btn" onclick="pressNumpad('0')">0</button>
-                            <button class="num-btn" style="color:var(--warning);" onclick="pressNumpad('DEL')">⌫</button>
-                        </div>
-
-                        <button class="btn btn-primary btn-block" onclick="processDirectIdCharge()" style="padding: 14px; font-size: 1.1rem;">Charge Account</button>
-                    </div>
-                </div>
-
-                <!-- 2. 🎉 ТӨЛБӨР АМЖИЛТТАЙ БОЛСОН ҮЕД ГАРДАГ НОГООН ЗӨВ ТЭМДЭГ -->
-                <div id="modal-success-content" style="display: none; padding: 25px 10px; flex-direction: column; align-items: center; justify-content: center;">
-                    <div style="width: 80px; height: 80px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin-bottom: 15px; border: 2px solid #22c55e;">
-                        ✓
-                    </div>
-                    <h3 style="color: #22c55e; font-size: 1.6rem; margin-bottom: 5px; border: none;">PAYMENT SUCCESSFUL!</h3>
-                    <p style="color: var(--text-muted); font-size: 0.95rem;" id="success-customer-label">Customer</p>
-                    <div style="font-size: 2.2rem; font-weight: bold; color: white; margin: 10px 0 20px 0;" id="success-amount-label">$0.00</div>
-                    
-                    <button class="btn btn-success btn-block" onclick="closeCheckoutModal()" style="padding: 14px; font-size: 1.1rem;">Done / Next Order</button>
-                </div>
-
+        <!-- HISTORY -->
+        <div class="page-view" id="history-page">
+            <div class="page-card">
+                <div class="page-title">📜 Transaction History</div>
+                <div class="history-list" id="history-list-container"></div>
             </div>
         </div>
 
-        <!-- TOP UP VIEW -->
-        <div id="topup-view" class="page-view">
-            <div class="card" style="max-width: 500px; margin: 0 auto;">
-                <h2>Account Balance Top-Up Gateway</h2>
-                <div class="form-group">
-                    <label>Enter Customer Numeric Account Code</label>
-                    <input type="text" id="topup-barcode-search" placeholder="e.g. 10011">
-                </div>
-                <div class="form-group">
-                    <label>Deposit Amount ($ USD)</label>
-                    <input type="number" id="topup-amount-input" placeholder="0.00" step="0.01">
-                </div>
-                <button class="btn btn-primary btn-block" onclick="submitWalletTopUp()">Complete Electronic Deposit</button>
+        <!-- PAYMENT QR (🔒 QR ИЛ ГАРАХЫН ӨМНӨ PIN КОД АСУУНА) -->
+        <div class="page-view" id="payment-page">
+            <!-- 1. PIN КОД АСУУЖ БАЙГАА ЦОНХ -->
+            <div class="page-card" id="qr-lock-card">
+                <div style="font-size: 2.5rem; margin-bottom: 10px;">🔒</div>
+                <div class="page-title">Enter PIN to View QR</div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Please enter your 4-digit PIN code to reveal your Payment QR.</p>
+                <input type="password" id="qr-unlock-pin" class="input-field" placeholder="••••" maxlength="4" style="letter-spacing: 8px; font-size: 1.5rem; text-align: center; margin-bottom: 15px;">
+                <button class="btn btn-primary" style="width: 100%;" onclick="unlockPaymentQr()">SHOW PAYMENT QR</button>
+            </div>
+
+            <!-- 2. PIN ЗӨВ ҮЕД ХАРАГДАХ QR КОДНЫ ЦОНХ -->
+            <div class="page-card" id="qr-content-card" style="display: none;">
+                <div class="page-title">📱 Account Barcode</div>
+                <div class="code-wrapper"><svg id="account-barcode-svg"></svg></div>
+                <hr style="border: none; border-top: 1px dashed var(--card-border); margin: 20px 0;">
+                <div class="page-title">⚡ Dynamic Payment QR</div>
+                <div class="qr-wrapper"><div id="account-qr-code"></div></div>
+                <button class="btn btn-danger" style="width: 100%; margin-top: 15px;" onclick="lockPaymentQr()">HIDE / LOCK QR</button>
             </div>
         </div>
 
-        <!-- CREATE PROFILE VIEW -->
-        <div id="customer-gen-view" class="page-view">
-            <div class="card" style="max-width: 500px; margin: 0 auto;">
-                <h2>Register Custom Customer Profile</h2>
-                <div class="form-group">
-                    <label>Account Holder Name</label>
-                    <input type="text" id="new-user-name" placeholder="e.g. John Doe">
-                </div>
-                <div class="form-group">
-                    <label>Starting Balance Credit ($)</label>
-                    <input type="number" id="new-user-initial-balance" value="50.00" step="0.01">
-                </div>
-                <button class="btn btn-primary btn-block" onclick="createNewBarcodeProfile()">Save Customer Profile</button>
+        <!-- SCAN QR -->
+        <div class="page-view" id="scan-page">
+            <div class="page-card">
+                <div class="page-title">📷 Scan POS Merchant QR</div>
+                <div id="reader"></div>
             </div>
         </div>
 
-        <!-- INVENTORY MANAGEMENT VIEW -->
-        <div id="inventory-view" class="page-view">
-            <div class="card">
-                <h2 id="form-action-title">Add New Product to System</h2>
-                <input type="hidden" id="edit-product-id-tracker" value="">
-                
-                <div class="form-inline">
-                    <div>
-                        <label>Name</label>
-                        <input type="text" id="new-product-name" placeholder="e.g. Espresso">
-                    </div>
-                    <div>
-                        <label>Display Emoji Icon</label>
-                        <input type="text" id="new-product-icon" placeholder="e.g. ☕">
-                    </div>
-                    <div>
-                        <label>Unit Price ($)</label>
-                        <input type="number" id="new-product-price" placeholder="0.00" step="0.01">
-                    </div>
-                    <div>
-                        <label>Configure Barcode Number</label>
-                        <input type="text" id="new-product-barcode" placeholder="e.g. 1001">
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-success" id="btn-inventory-submit" onclick="saveProductForm()">Commit Product Registry</button>
-                    <button class="btn btn-danger" id="btn-inventory-cancel" onclick="resetProductForm()" style="display:none;">Cancel Edit</button>
+        <!-- PIN SETTINGS PAGE -->
+        <div class="page-view" id="pin-settings-page">
+            <div class="page-card">
+                <div class="page-title">🔐 Change 4-Digit PIN</div>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                    <input type="password" id="old-pin" class="input-field" placeholder="Old 4-Digit PIN" maxlength="4">
+                    <input type="password" id="new-pin" class="input-field" placeholder="New 4-Digit PIN" maxlength="4">
+                    <button class="btn btn-primary" onclick="updatePinCode()">UPDATE PIN</button>
                 </div>
             </div>
+        </div>
 
-            <div class="card">
-                <h2>Live Database Catalog Management</h2>
-                <table class="inventory-table">
-                    <thead>
-                        <tr>
-                            <th>Icon</th>
-                            <th>Product Label</th>
-                            <th>Unit Value Price</th>
-                            <th>Assigned Barcode String</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventory-table-body"></tbody>
-                </table>
+    </div>
+
+    <!-- 🎉 SCAN ТӨЛБӨР АМЖИЛТТАЙ БОЛОХОД ГАРДАГ НОГООН ЗӨВ ТЭМДЭГТЭЙ MODAL -->
+    <div class="modal-backdrop" id="success-modal">
+        <div class="modal-box" style="padding: 30px 20px;">
+            <div style="width: 80px; height: 80px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 15px auto; border: 2px solid #22c55e;">
+                ✓
             </div>
+            <div style="font-size: 1.4rem; font-weight: bold; color: #22c55e; margin-bottom: 5px;">PAYMENT SUCCESSFUL!</div>
+            <div style="font-size: 0.9rem; color: var(--text-muted);" id="scan-success-details">Amount Paid</div>
+            <div style="font-size: 2rem; font-weight: bold; color: white; margin: 10px 0 20px 0;" id="scan-success-amount">$0.00</div>
+            <button class="btn btn-success" style="width: 100%; font-size: 1rem; padding: 12px;" onclick="closeSuccessModal()">DONE</button>
         </div>
     </div>
 
-    <div id="toast">Notification Message</div>
+    <div id="toast">Notification</div>
+
+    <!-- FIREBASE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA03_nm4Zk3RXmgIxKbxXP-pEGWnzmsQOE",
+            authDomain: "pos21-8f88f.firebaseapp.com",
+            databaseURL: "https://pos21-8f88f-default-rtdb.firebaseio.com",
+            projectId: "pos21-8f88f",
+            storageBucket: "pos21-8f88f.firebasestorage.app",
+            messagingSenderId: "49870857272",
+            appId: "1:49870857272:web:d349580c3d5ebb6f93f2cd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.FB = { auth, db, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut };
+
+        let balanceUnsubscribe = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                document.getElementById('app-header').style.display = 'flex';
+                const accountRef = doc(db, "accounts", user.uid);
+                balanceUnsubscribe = onSnapshot(accountRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        window.currentAccount = docSnap.data();
+                        window.currentAccount.uid = user.uid;
+                        renderDashboardUI();
+                    }
+                });
+                navigateToPage('dashboard-page');
+            } else {
+                if (balanceUnsubscribe) balanceUnsubscribe();
+                window.currentAccount = null;
+                document.getElementById('app-header').style.display = 'none';
+                stopCameraScanner();
+                document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active-page'));
+                document.getElementById('login-page').classList.add('active-page');
+                toggleSidebar(false);
+            }
+        });
+    </script>
 
     <script>
         const displayChannel = new BroadcastChannel('pos_system_channel');
+        let html5QrcodeScanner = null;
+        window.currentAccount = null;
 
-        let products = [];
-        let cart = [];
-        let totalDue = 0.00;
-        let typedAccountId = "";
-        let activeInvoiceId = null;
-        let transactionUnsubscribe = null;
+        function triggerVibration() {
+            if ("vibrate" in navigator) { navigator.vibrate(200); }
+        }
 
-        let barcodeBuffer = "";
-        let lastKeyTime = Date.now();
+        function navigateToPage(pageId) {
+            toggleSidebar(false);
+            stopCameraScanner();
+            document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(pageId)?.classList.add('active-page');
 
-        // Staff Auth State
-        let currentPinInput = "";
-        let activeStaffUser = null;
-        const DEFAULT_PIN = "1234";
+            if (pageId === 'payment-page') {
+                lockPaymentQr(); // Эхлээд нууц үг асуух цонхыг харуулна
+            } else if (pageId === 'scan-page') {
+                startCameraScanner();
+            }
+        }
+
+        function toggleSidebar(forceState) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const shouldOpen = forceState !== undefined ? forceState : !sidebar.classList.contains('active');
+            sidebar.classList.toggle('active', shouldOpen);
+            overlay.classList.toggle('active', shouldOpen);
+        }
+
+        // 🔒 QR КОД НУУЦ ҮГЭЭР ИЛ БОЛГОХ ЛОГИК
+        function unlockPaymentQr() {
+            const pinInput = document.getElementById('qr-unlock-pin').value.trim();
+            const currentPin = window.currentAccount.pinCode || "1234";
+
+            if (pinInput !== currentPin) {
+                triggerVibration();
+                fireToast("❌ Incorrect 4-digit PIN!");
+                return;
+            }
+
+            triggerVibration();
+            document.getElementById('qr-lock-card').style.display = 'none';
+            document.getElementById('qr-content-card').style.display = 'block';
+            document.getElementById('qr-unlock-pin').value = '';
+            renderCodes();
+        }
+
+        function lockPaymentQr() {
+            document.getElementById('qr-lock-card').style.display = 'block';
+            document.getElementById('qr-content-card').style.display = 'none';
+            document.getElementById('qr-unlock-pin').value = '';
+        }
+
+        async function handleLogin() {
+            const accountId = document.getElementById('login-account-id').value.trim();
+            const passcode = document.getElementById('login-passcode').value.trim();
+            if (!accountId || !passcode) return fireToast("❌ Enter ID & Passcode.");
+            try {
+                await window.FB.signInWithEmailAndPassword(window.FB.auth, `${accountId}@wallet.local`, passcode);
+            } catch (err) { fireToast("❌ Login Failed: " + err.message); }
+        }
+
+        async function seedDatabase() {
+            try {
+                let user;
+                try {
+                    const cred = await window.FB.createUserWithEmailAndPassword(window.FB.auth, "10011@wallet.local", "123456");
+                    user = cred.user;
+                } catch(e) {
+                    const cred = await window.FB.signInWithEmailAndPassword(window.FB.auth, "10011@wallet.local", "123456");
+                    user = cred.user;
+                }
+                await window.FB.setDoc(window.FB.doc(window.FB.db, "accounts", user.uid), {
+                    accountId: "10011", name: "Alex", balance: 1365.50, pinCode: "1234"
+                });
+                fireToast("✅ Test Account 10011 Created (PIN: 1234)!");
+            } catch (err) { fireToast("❌ Seed Error: " + err.message); }
+        }
+
+        async function handleLogout() {
+            await window.FB.signOut(window.FB.auth);
+            fireToast("Logged out.");
+        }
+
+        function renderDashboardUI() {
+            if (!window.currentAccount) return;
+            document.getElementById('header-user-display').innerText = window.currentAccount.name;
+            document.getElementById('wallet-user-name').innerText = window.currentAccount.name;
+            document.getElementById('wallet-account-id').innerText = `ID: #${window.currentAccount.accountId}`;
+            document.getElementById('wallet-balance-display').innerText = `$${Number(window.currentAccount.balance).toFixed(2)}`;
+        }
+
+        function renderCodes() {
+            if (!window.currentAccount) return;
+            try {
+                JsBarcode("#account-barcode-svg", window.currentAccount.accountId, { format: "CODE128", width: 2, height: 50, displayValue: true });
+            } catch(e) {}
+
+            const qrContainer = document.getElementById('account-qr-code');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: JSON.stringify({ type: "CUSTOMER_WALLET_PAY", accountId: window.currentAccount.accountId }),
+                width: 180, height: 180, correctLevel: QRCode.CorrectLevel.L
+            });
+        }
+
+        function startCameraScanner() {
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 220, height: 220 } },
+                (decodedText) => {
+                    try {
+                        const parsed = JSON.parse(decodedText);
+                        if (parsed.type === "POS_INVOICE") {
+                            stopCameraScanner();
+                            triggerVibration(); 
+                            processInvoicePayment(parsed.invoiceId, parsed.amount);
+                        }
+                    } catch(e) { fireToast("❌ Invalid QR."); }
+                },
+                () => {}
+            ).catch(err => fireToast("❌ Camera Error."));
+        }
+
+        function stopCameraScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); html5QrcodeScanner = null; }).catch(() => { html5QrcodeScanner = null; });
+            }
+        }
+
+        // 🎉 КАМЕРААР QR УНШИЖ ТӨЛӨГДМӨГЦ НОГООН ЗӨВ ТЭМДЭГ ХАРУУЛАХ
+      async function processInvoicePayment(invoiceId, amount) {
+            if (window.currentAccount.balance < amount) return fireToast("❌ Insufficient funds.");
+
+            try {
+                // Firebase Auth-аас шууд UID-г авах (Зөв зам үүсгэх зорилгоор)
+                const realUid = window.FB.auth.currentUser.uid;
+                const accountDocRef = window.FB.doc(window.FB.db, "accounts", realUid);
+                
+                await window.FB.updateDoc(accountDocRef, {
+                    balance: window.FB.increment(-amount)
+                });
+                
+                displayChannel.postMessage({ type: 'WALLET_PAYMENT_SUCCESS', invoiceId: invoiceId, amount: amount, customerName: window.currentAccount.name });
+                
+                // 🎉 Амжилттай болсон үед ногоон зөв тэмдэгтэй цонхыг гаргах
+                document.getElementById('scan-success-amount').innerText = `$${Number(amount).toFixed(2)}`;
+                document.getElementById('success-modal').style.display = 'flex';
+
+            } catch (err) { fireToast("❌ Payment Error: " + err.message); }
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('success-modal').style.display = 'none';
+            navigateToPage('dashboard-page');
+        }
+
+        async function updatePinCode() {
+            const oldPin = document.getElementById('old-pin').value.trim();
+            const newPin = document.getElementById('new-pin').value.trim();
+            const currentPin = window.currentAccount.pinCode || "1234";
+
+            if (oldPin !== currentPin) return fireToast("❌ Old PIN is incorrect.");
+            if (newPin.length !== 4 || isNaN(newPin)) return fireToast("❌ New PIN must be 4 digits.");
+
+            try {
+                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), { pinCode: newPin });
+                fireToast("✅ PIN code updated!");
+                document.getElementById('old-pin').value = '';
+                document.getElementById('new-pin').value = '';
+                navigateToPage('dashboard-page');
+            } catch (err) { fireToast("❌ Update failed: " + err.message); }
+        }
+
+        async function executeTransfer() {
+            const recipientId = document.getElementById('transfer-recipient-id').value.trim();
+            const amount = parseFloat(document.getElementById('transfer-amount').value);
+
+            if (!recipientId || isNaN(amount) || amount <= 0) return fireToast("❌ Check amount/ID.");
+            if (window.currentAccount.balance < amount) return fireToast("❌ Insufficient funds.");
+
+            try {
+                const q = window.FB.query(window.FB.collection(window.FB.db, "accounts"), window.FB.where("accountId", "==", recipientId));
+                const snap = await window.FB.getDocs(q);
+                if (snap.empty) return fireToast("❌ Recipient not found.");
+
+                const recipientDoc = snap.docs[0];
+
+                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), { balance: window.FB.increment(-amount) });
+                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", recipientDoc.id), { balance: window.FB.increment(amount) });
+
+                triggerVibration();
+                fireToast(`🎉 Sent $${amount.toFixed(2)} successfully!`);
+                navigateToPage('dashboard-page');
+            } catch (err) { fireToast("❌ Error: " + err.message); }
+        }
 
         function fireToast(msg) {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
             toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 3500);
-        }
-
-        // --- AUDIO BEEP GENERATOR ---
-        function playScannerBeep() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-
-                oscillator.type = "sine";
-                oscillator.frequency.setValueAtTime(850, audioCtx.currentTime); 
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.15); 
-            } catch (e) {}
-        }
-
-        // --- LOGIN LOGIC ---
-        function pressLoginPin(val) {
-            if (val === 'C') {
-                currentPinInput = "";
-            } else if (val === 'DEL') {
-                currentPinInput = currentPinInput.slice(0, -1);
-            } else {
-                if (currentPinInput.length < 4) currentPinInput += val;
-            }
-            updateLoginPinDisplay();
-        }
-
-        function updateLoginPinDisplay() {
-            const display = document.getElementById('login-pin-masked');
-            display.innerText = "•".repeat(currentPinInput.length) || "••••";
-        }
-
-        function attemptLogin() {
-            if (currentPinInput === DEFAULT_PIN) {
-                activeStaffUser = document.getElementById('staff-select-input').value;
-                document.getElementById('logged-staff-name').innerText = `👤 ${activeStaffUser}`;
-                
-                document.getElementById('top-nav').style.display = 'flex';
-                switchView('register-view');
-                fireToast(`Welcome back, ${activeStaffUser}!`);
-                
-                currentPinInput = "";
-                updateLoginPinDisplay();
-            } else {
-                fireToast("❌ Incorrect PIN. (Default: 1234)");
-                currentPinInput = "";
-                updateLoginPinDisplay();
-            }
-        }
-
-        function logoutStaff() {
-            activeStaffUser = null;
-            document.getElementById('top-nav').style.display = 'none';
-            switchView('login-view');
-            fireToast("🔒 Terminal Locked.");
-        }
-
-        function switchView(viewId, btnElement) {
-            document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active-view'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active-view');
-            if(btnElement) btnElement.classList.add('active');
-        }
-
-        // Live Product Sync from Firestore
-        db.collection('products').onSnapshot((snapshot) => {
-            products = [];
-            if (!snapshot.empty) {
-                snapshot.forEach(doc => {
-                    products.push({ id: doc.id, ...doc.data() });
-                });
-            } else {
-                const defaultSeed = [
-                    { barcode: "111", icon: "☕", name: "Hot Coffee", price: 3.50 },
-                    { barcode: "222", icon: "🍕", name: "Pizza Slice", price: 5.50 },
-                    { barcode: "333", icon: "🍩", name: "Glazed Donut", price: 2.25 }
-                ];
-                defaultSeed.forEach(p => db.collection('products').add(p));
-            }
-            renderProductGrid();
-            buildInventoryManagementTables();
-        });
-
-        function submitWalletTopUp() {
-            const rawCode = document.getElementById('topup-barcode-search').value.trim();
-            const amountInput = document.getElementById('topup-amount-input').value.trim();
-            const amount = parseFloat(amountInput);
-
-            if (!rawCode) {
-                fireToast("❌ Please enter or scan an Account ID.");
-                return;
-            }
-
-            if (isNaN(amount) || amount <= 0) { 
-                fireToast("❌ Please enter a valid deposit amount greater than $0.00."); 
-                return; 
-            }
-
-            const codeStr = String(rawCode);
-            db.collection("accounts").where("accountId", "==", codeStr).get().then((querySnapshot) => {
-                if (querySnapshot.empty) {
-                    fireToast(`❌ Account #${codeStr} does not exist.`);
-                    return;
-                }
-
-                const doc = querySnapshot.docs[0];
-                const data = doc.data();
-                const currentBalance = parseFloat(data.balance) || 0;
-                const newBalance = currentBalance + amount;
-                const accountName = data.name || data.displayName || `Account (${codeStr})`;
-
-                return doc.ref.update({
-                    balance: newBalance,
-                    lastTopUp: Date.now()
-                }).then(() => {
-                    document.getElementById('topup-barcode-search').value = '';
-                    document.getElementById('topup-amount-input').value = '';
-                    fireToast(`✅ Deposited $${amount.toFixed(2)} to ${accountName}! New Balance: $${newBalance.toFixed(2)}`);
-                });
-            }).catch((err) => {
-                fireToast("❌ Top-up failed: " + err.message);
-            });
-        }
-
-        function createNewBarcodeProfile() {
-            const name = document.getElementById('new-user-name').value.trim();
-            const initialBalanceInput = document.getElementById('new-user-initial-balance').value.trim();
-            const initialBalance = parseFloat(initialBalanceInput);
-
-            if (!name) {
-                fireToast("❌ Please enter an Account Holder Name.");
-                return;
-            }
-
-            if (isNaN(initialBalance) || initialBalance < 0) {
-                fireToast("❌ Please enter a valid starting balance.");
-                return;
-            }
-
-            const generatedAccountId = String(Math.floor(10000 + Math.random() * 90000));
-
-            db.collection('accounts').add({
-                accountId: generatedAccountId,
-                name: name,
-                balance: initialBalance,
-                createdAt: Date.now()
-            }).then(() => {
-                fireToast(`✅ Profile Created! ID: ${generatedAccountId} (Name: ${name})`);
-                document.getElementById('new-user-name').value = '';
-                document.getElementById('new-user-initial-balance').value = '50.00';
-            }).catch(err => {
-                fireToast("❌ Profile Creation Failed: " + err.message);
-            });
-        }
-
-        function processDirectIdCharge() {
-            if (!typedAccountId) {
-                fireToast("❌ Please enter or scan an Account ID.");
-                return;
-            }
-
-            const searchInput = String(typedAccountId).trim();
-
-            db.collection("accounts")
-              .where("accountId", "==", searchInput)
-              .get()
-              .then((querySnapshot) => {
-                  if (querySnapshot.empty) {
-                      fireToast(`❌ Account "${searchInput}" not found.`);
-                      return;
-                  }
-
-                  const userDoc = querySnapshot.docs[0];
-                  const customer = userDoc.data();
-                  const currentBal = Number(customer.balance) || 0;
-
-                  if (currentBal < totalDue) {
-                      fireToast(`❌ Insufficient funds! Balance: $${currentBal.toFixed(2)}`);
-                      return;
-                  }
-
-                  const newBalance = currentBal - totalDue;
-
-                  userDoc.ref.update({
-                      balance: newBalance,
-                      lastPurchase: new Date().toISOString()
-                  }).then(() => {
-                      completeCheckoutSuccess(customer.name || customer.accountId || "Customer", totalDue);
-                  });
-              })
-              .catch((error) => {
-                  fireToast("❌ Payment failed: " + error.message);
-              });
-        }
-
-        // USB Scanner & Keypress Listener
-        window.addEventListener("keydown", function(e) {
-            const currentTime = Date.now();
-            if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return; 
-
-            if (!activeStaffUser) {
-                if (/[0-9]/.test(e.key)) pressLoginPin(e.key);
-                else if (e.key === "Enter") attemptLogin();
-                else if (e.key === "Backspace") pressLoginPin('DEL');
-                return;
-            }
-
-            if (currentTime - lastKeyTime > 100) barcodeBuffer = "";
-            lastKeyTime = currentTime;
-
-            const isModalOpen = document.getElementById('checkout-modal').style.display === 'flex';
-
-            if (e.key === "Enter") {
-                if (barcodeBuffer.length > 0) {
-                    const scannedCode = barcodeBuffer.trim();
-                    barcodeBuffer = "";
-
-                    if (isModalOpen) {
-                        typedAccountId = scannedCode;
-                        updateNumpadUI();
-                        processDirectIdCharge();
-                    } else {
-                        const matchedProduct = products.find(p => p.barcode === scannedCode);
-                        if (matchedProduct) addItemToCart(matchedProduct);
-                    }
-                }
-                e.preventDefault();
-                return;
-            }
-
-            if (/[0-9]/.test(e.key)) {
-                barcodeBuffer += e.key;
-                if (isModalOpen) pressNumpad(e.key);
-            } else if (isModalOpen && (e.key === "Backspace" || e.key === "Delete")) {
-                pressNumpad('DEL');
-            }
-        });
-
-        function pressNumpad(val) {
-            if (val === 'C') {
-                typedAccountId = "";
-            } else if (val === 'DEL') {
-                typedAccountId = typedAccountId.slice(0, -1);
-            } else {
-                if (typedAccountId.length < 10) typedAccountId += val;
-            }
-            updateNumpadUI();
-        }
-
-        function updateNumpadUI() {
-            document.getElementById('numpad-input-val').innerText = typedAccountId || "------";
-        }
-
-        // 🎉 АМЖИЛТТАЙ ЗӨВ ТЭМДЭГ ХАРУУЛАХ ФУНКЦ
-        function completeCheckoutSuccess(customerName, amountPaid) {
-            playScannerBeep();
-            
-            document.getElementById('modal-waiting-content').style.display = 'none';
-            document.getElementById('modal-success-content').style.display = 'flex';
-            
-            document.getElementById('success-customer-label').innerText = `Paid by: ${customerName}`;
-            document.getElementById('success-amount-label').innerText = `$${Number(amountPaid).toFixed(2)}`;
-
-            fireToast(`✅ Payment Successful! $${amountPaid.toFixed(2)} charged to ${customerName}`);
-            
-            displayChannel.postMessage({
-                type: 'PAYMENT_STATUS',
-                status: 'SUCCESS',
-                message: `✅ Paid $${amountPaid.toFixed(2)} by ${customerName}`
-            });
-
-            clearCart();
-        }
-
-        function openCheckoutModal() {
-            if (cart.length === 0) {
-                fireToast("❌ Cart is empty.");
-                return;
-            }
-
-            typedAccountId = "";
-            updateNumpadUI();
-
-            activeInvoiceId = "INV_" + Date.now();
-            document.getElementById('modal-total-display').innerText = `$${totalDue.toFixed(2)}`;
-            
-            document.getElementById('modal-waiting-content').style.display = 'block';
-            document.getElementById('modal-success-content').style.display = 'none';
-
-            const modal = document.getElementById('checkout-modal');
-            if (modal) modal.style.display = 'flex';
-
-            db.collection("active_checkouts").doc("current_checkout").set({
-                status: "PENDING",
-                invoiceId: activeInvoiceId,
-                amount: totalDue,
-                createdAt: Date.now()
-            }).catch(err => console.error(err));
-
-            if (transactionUnsubscribe) transactionUnsubscribe();
-
-            transactionUnsubscribe = db.collection("active_checkouts").doc("current_checkout")
-                .onSnapshot((docSnap) => {
-                    if (docSnap.exists) {
-                        const data = docSnap.data();
-                        if (data.status === "COMPLETED" && data.invoiceId === activeInvoiceId) {
-                            completeCheckoutSuccess(data.customerName || "Customer", totalDue);
-                        }
-                    }
-                });
-
-            displayChannel.postMessage({
-                type: 'SHOW_INVOICE_QR',
-                invoiceId: activeInvoiceId,
-                amount: totalDue,
-                cart: cart
-            });
-        }
-
-        function closeCheckoutModal() {
-            const modal = document.getElementById('checkout-modal');
-            if (modal) modal.style.display = 'none';
-            
-            document.getElementById('modal-waiting-content').style.display = 'block';
-            document.getElementById('modal-success-content').style.display = 'none';
-
-            if (transactionUnsubscribe) transactionUnsubscribe();
-
-            db.collection("active_checkouts").doc("current_checkout").set({
-                status: "IDLE",
-                invoiceId: null,
-                amount: 0.00
-            }).catch(err => console.error(err));
-
-            typedAccountId = "";
-            syncCustomerDisplay();
-        }
-
-        function addItemToCart(product) {
-            const match = cart.find(c => c.id === product.id);
-            if (match) { 
-                match.quantity++; 
-            } else { 
-                cart.push({ id: product.id, name: product.name, icon: product.icon, price: product.price, quantity: 1 }); 
-            }
-            buildCartUI();
-        }
-
-        function syncCustomerDisplay() {
-            displayChannel.postMessage({
-                type: 'UPDATE_CART',
-                cart: cart,
-                total: totalDue
-            });
-        }
-
-        function clearCart() { cart = []; buildCartUI(); }
-
-        function buildCartUI() {
-            const container = document.getElementById('cart-rows');
-            if(cart.length === 0) {
-                container.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">Cart is empty</td></tr>`;
-                document.getElementById('cart-total-display').innerText = "$0.00";
-                totalDue = 0.00; 
-                syncCustomerDisplay();
-                return;
-            }
-            container.innerHTML = ''; totalDue = 0;
-            cart.forEach(item => {
-                let cost = item.price * item.quantity; totalDue += cost;
-                let tr = document.createElement('tr');
-                tr.innerHTML = `<td>${item.icon} ${item.name}</td><td>${item.quantity}x</td><td>$${cost.toFixed(2)}</td>`;
-                container.appendChild(tr);
-            });
-            document.getElementById('cart-total-display').innerText = `$${totalDue.toFixed(2)}`;
-            syncCustomerDisplay();
-        }
-
-        function renderProductGrid() {
-            const grid = document.getElementById('pos-menu-grid');
-            grid.innerHTML = '';
-            products.forEach(p => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'product-item';
-                itemDiv.onclick = () => addItemToCart(p);
-                itemDiv.innerHTML = `
-                    <div style="font-size:1.8rem; margin-bottom:5px;">${p.icon}</div>
-                    <div style="font-weight:600; font-size:0.85rem;">${p.name}</div>
-                    <div style="color:var(--primary); font-weight:700; margin-top:2px;">$${Number(p.price).toFixed(2)}</div>
-                    <div><span class="barcode-tag"># ${p.barcode}</span></div>
-                `;
-                grid.appendChild(itemDiv);
-            });
-        }
-
-        function buildInventoryManagementTables() {
-            const tbody = document.getElementById('inventory-table-body');
-            tbody.innerHTML = '';
-            products.forEach(p => {
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><span style="font-size:1.3rem;">${p.icon}</span></td>
-                    <td><strong>${p.name}</strong></td>
-                    <td>$${Number(p.price).toFixed(2)}</td>
-                    <td><svg id="barcode-prod-${p.id}" style="background:#fff; padding:4px; border-radius:4px;"></svg></td>
-                    <td>
-                        <button class="btn btn-warning btn-sm" onclick="startEditProduct('${p.id}')">Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-
-                try {
-                    JsBarcode(`#barcode-prod-${p.id}`, p.barcode, {
-                        format: "CODE128",
-                        height: 25,
-                        width: 1,
-                        displayValue: true,
-                        fontSize: 10
-                    });
-                } catch(err) {}
-            });
-        }
-
-        function saveProductForm() {
-            const id = document.getElementById('edit-product-id-tracker').value;
-            const name = document.getElementById('new-product-name').value.trim();
-            const icon = document.getElementById('new-product-icon').value.trim() || "📦";
-            const price = parseFloat(document.getElementById('new-product-price').value.trim());
-            const barcode = document.getElementById('new-product-barcode').value.trim();
-
-            if (!name || isNaN(price) || !barcode) {
-                fireToast("❌ Please complete Name, Price, and Barcode fields.");
-                return;
-            }
-
-            const payload = { name, icon, price, barcode };
-
-            if (id) {
-                db.collection('products').doc(id).update(payload).then(() => {
-                    fireToast(`✅ Updated Product: ${name}`);
-                    resetProductForm();
-                });
-            } else {
-                db.collection('products').add(payload).then(() => {
-                    fireToast(`✅ Created Product: ${name}`);
-                    resetProductForm();
-                });
-            }
-        }
-
-        function startEditProduct(id) {
-            const product = products.find(p => p.id === id);
-            if (!product) return;
-
-            document.getElementById('edit-product-id-tracker').value = product.id;
-            document.getElementById('new-product-name').value = product.name;
-            document.getElementById('new-product-icon').value = product.icon;
-            document.getElementById('new-product-price').value = product.price;
-            document.getElementById('new-product-barcode').value = product.barcode;
-
-            document.getElementById('form-action-title').innerText = "Edit Existing Product";
-            document.getElementById('btn-inventory-submit').innerText = "Update Product";
-            document.getElementById('btn-inventory-cancel').style.display = "inline-block";
-        }
-
-        function resetProductForm() {
-            document.getElementById('edit-product-id-tracker').value = '';
-            document.getElementById('new-product-name').value = '';
-            document.getElementById('new-product-icon').value = '';
-            document.getElementById('new-product-price').value = '';
-            document.getElementById('new-product-barcode').value = '';
-
-            document.getElementById('form-action-title').innerText = "Add New Product to System";
-            document.getElementById('btn-inventory-submit').innerText = "Commit Product Registry";
-            document.getElementById('btn-inventory-cancel').style.display = "none";
-        }
-
-        function deleteProduct(id) {
-            if (confirm("Are you sure you want to remove this product from the database?")) {
-                db.collection('products').doc(id).delete().then(() => {
-                    fireToast("🗑️ Product deleted successfully.");
-                });
-            }
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
         }
     </script>
 </body>
