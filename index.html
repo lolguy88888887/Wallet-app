@@ -276,7 +276,7 @@
             document.getElementById(pageId)?.classList.add('active-page');
 
             if (pageId === 'payment-page') {
-                lockPaymentQr(); // Эхлээд нууц үг асуух цонхыг харуулна
+                lockPaymentQr(); 
             } else if (pageId === 'scan-page') {
                 startCameraScanner();
             }
@@ -290,7 +290,6 @@
             overlay.classList.toggle('active', shouldOpen);
         }
 
-        // 🔒 QR КОД НУУЦ ҮГЭЭР ИЛ БОЛГОХ ЛОГИК
         function unlockPaymentQr() {
             const pinInput = document.getElementById('qr-unlock-pin').value.trim();
             const currentPin = window.currentAccount.pinCode || "1234";
@@ -392,22 +391,29 @@
             }
         }
 
-        // 🎉 КАМЕРААР QR УНШИЖ ТӨЛӨГДМӨГЦ НОГООН ЗӨВ ТЭМДЭГ ХАРУУЛАХ
-      async function processInvoicePayment(invoiceId, amount) {
+        // 🎉 КАМЕРААР QR УНШИЖ ТӨЛӨГДМӨГЦ НОГООН ЗӨВ ТЭМДЭГ ХАРУУЛАХ (QUERY АШИГЛАВ)
+        async function processInvoicePayment(invoiceId, amount) {
             if (window.currentAccount.balance < amount) return fireToast("❌ Insufficient funds.");
 
             try {
-                // Firebase Auth-аас шууд UID-г авах (Зөв зам үүсгэх зорилгоор)
-                const realUid = window.FB.auth.currentUser.uid;
-                const accountDocRef = window.FB.doc(window.FB.db, "accounts", realUid);
+                const q = window.FB.query(
+                    window.FB.collection(window.FB.db, "accounts"), 
+                    window.FB.where("accountId", "==", window.currentAccount.accountId)
+                );
                 
-                await window.FB.updateDoc(accountDocRef, {
+                const querySnapshot = await window.FB.getDocs(q);
+                if (querySnapshot.empty) {
+                    return fireToast("❌ Account document not found.");
+                }
+
+                const userDocRef = querySnapshot.docs[0].ref;
+
+                await window.FB.updateDoc(userDocRef, {
                     balance: window.FB.increment(-amount)
                 });
                 
                 displayChannel.postMessage({ type: 'WALLET_PAYMENT_SUCCESS', invoiceId: invoiceId, amount: amount, customerName: window.currentAccount.name });
                 
-                // 🎉 Амжилттай болсон үед ногоон зөв тэмдэгтэй цонхыг гаргах
                 document.getElementById('scan-success-amount').innerText = `$${Number(amount).toFixed(2)}`;
                 document.getElementById('success-modal').style.display = 'flex';
 
