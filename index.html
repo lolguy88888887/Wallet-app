@@ -393,12 +393,13 @@
         }
 
         // 🎉 КАМЕРААР QR УНШИЖ ТӨЛӨГДМӨГЦ НОГООН ЗӨВ ТЭМДЭГ ХАРУУЛАХ
-       async function processInvoicePayment(invoiceId, amount) {
+      async function processInvoicePayment(invoiceId, amount) {
             if (window.currentAccount.balance < amount) return fireToast("❌ Insufficient funds.");
 
             try {
-                // accounts цуглуулга доторх яг тухайн хэрэглэгчийн UID баримтыг зөв заах
-                const accountDocRef = window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid);
+                // Firebase Auth-аас шууд UID-г авах (Зөв зам үүсгэх зорилгоор)
+                const realUid = window.FB.auth.currentUser.uid;
+                const accountDocRef = window.FB.doc(window.FB.db, "accounts", realUid);
                 
                 await window.FB.updateDoc(accountDocRef, {
                     balance: window.FB.increment(-amount)
