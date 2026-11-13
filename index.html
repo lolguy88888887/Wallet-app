@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Mobile Wallet</title>
-    <!-- Barcode & QR Code Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -72,9 +71,6 @@
         .code-wrapper { background: white; padding: 12px; border-radius: 12px; display: inline-block; width: 100%; margin: 10px 0; }
         .qr-wrapper { display: flex; justify-content: center; background: white; padding: 12px; border-radius: 12px; margin: 10px auto; width: max-content; }
 
-        .history-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; text-align: left; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--card-border); font-size: 0.85rem; cursor: pointer; transition: background 0.2s; }
-
         #reader { width: 100%; border-radius: 12px; overflow: hidden; background: black; }
 
         .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
@@ -85,7 +81,6 @@
 </head>
 <body>
 
-    <!-- SIDEBAR NAVIGATION MENU -->
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -95,16 +90,14 @@
         <div class="nav-list">
             <div class="nav-item" onclick="navigateToPage('dashboard-page')"><span>💰</span> Balance Home</div>
             <div class="nav-item" onclick="navigateToPage('transfer-page')"><span>💸</span> Transfer Bar</div>
-            <div class="nav-item" onclick="navigateToPage('history-page')"><span>📜</span> History Bar</div>
-            <div class="nav-item" onclick="navigateToPage('payment-page')"><span>💳</span> Payment Bar</div>
-            <div class="nav-item" onclick="navigateToPage('scan-page')"><span>📷</span> Scan QR Bar</div>
+            <div class="nav-item" onclick="navigateToPage('payment-page')"><span>💳</span> Show My QR</div>
+            <div class="nav-item" onclick="navigateToPage('scan-page')"><span>📷</span> Scan POS QR</div>
             <div class="nav-item" onclick="navigateToPage('pin-settings-page')"><span>🔐</span> Change PIN Code</div>
         </div>
         <button class="btn btn-danger" style="width: 100%; margin-top: auto;" onclick="handleLogout()">Logout</button>
     </div>
 
     <div class="app-container">
-
         <!-- LOGIN PAGE -->
         <div class="page-view" id="login-page">
             <div class="page-card" style="display: flex; flex-direction: column; gap: 15px;">
@@ -131,6 +124,10 @@
                 <div class="user-name" id="wallet-user-name">Loading...</div>
                 <div class="account-id-badge" id="wallet-account-id">ID: #00000</div>
             </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <button class="btn btn-primary" onclick="navigateToPage('payment-page')">💳 Show QR</button>
+                <button class="btn btn-success" onclick="navigateToPage('scan-page')">📷 Scan POS</button>
+            </div>
         </div>
 
         <!-- TRANSFER -->
@@ -145,17 +142,8 @@
             </div>
         </div>
 
-        <!-- HISTORY -->
-        <div class="page-view" id="history-page">
-            <div class="page-card">
-                <div class="page-title">📜 Transaction History</div>
-                <div class="history-list" id="history-list-container"></div>
-            </div>
-        </div>
-
-        <!-- PAYMENT QR (🔒 QR ИЛ ГАРАХЫН ӨМНӨ PIN КОД АСУУНА) -->
+        <!-- PAYMENT QR (PIN-LOCKED) -->
         <div class="page-view" id="payment-page">
-            <!-- 1. PIN КОД АСУУЖ БАЙГАА ЦОНХ -->
             <div class="page-card" id="qr-lock-card">
                 <div style="font-size: 2.5rem; margin-bottom: 10px;">🔒</div>
                 <div class="page-title">Enter PIN to View QR</div>
@@ -164,13 +152,13 @@
                 <button class="btn btn-primary" style="width: 100%;" onclick="unlockPaymentQr()">SHOW PAYMENT QR</button>
             </div>
 
-            <!-- 2. PIN ЗӨВ ҮЕД ХАРАГДАХ QR КОДНЫ ЦОНХ -->
             <div class="page-card" id="qr-content-card" style="display: none;">
                 <div class="page-title">📱 Account Barcode</div>
                 <div class="code-wrapper"><svg id="account-barcode-svg"></svg></div>
                 <hr style="border: none; border-top: 1px dashed var(--card-border); margin: 20px 0;">
                 <div class="page-title">⚡ Dynamic Payment QR</div>
                 <div class="qr-wrapper"><div id="account-qr-code"></div></div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">Show this to POS Scanner or Cashier</p>
                 <button class="btn btn-danger" style="width: 100%; margin-top: 15px;" onclick="lockPaymentQr()">HIDE / LOCK QR</button>
             </div>
         </div>
@@ -183,7 +171,7 @@
             </div>
         </div>
 
-        <!-- PIN SETTINGS PAGE -->
+        <!-- PIN SETTINGS -->
         <div class="page-view" id="pin-settings-page">
             <div class="page-card">
                 <div class="page-title">🔐 Change 4-Digit PIN</div>
@@ -194,10 +182,9 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- 🎉 SCAN ТӨЛБӨР АМЖИЛТТАЙ БОЛОХОД ГАРДАГ НОГООН ЗӨВ ТЭМДЭГТЭЙ MODAL -->
+    <!-- 🎉 ТӨЛБӨР АМЖИЛТТАЙ БОЛОХОД ГАРДАГ НОГООН ЗӨВ ТЭМДЭГТЭЙ MODAL -->
     <div class="modal-backdrop" id="success-modal">
         <div class="modal-box" style="padding: 30px 20px;">
             <div style="width: 80px; height: 80px; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 15px auto; border: 2px solid #22c55e;">
@@ -212,11 +199,10 @@
 
     <div id="toast">Notification</div>
 
-    <!-- FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, updateDoc, increment, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA03_nm4Zk3RXmgIxKbxXP-pEGWnzmsQOE",
@@ -232,19 +218,37 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.FB = { auth, db, doc, setDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, onSnapshot, serverTimestamp, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut };
+        window.FB = { auth, db, doc, setDoc, updateDoc, increment, collection, query, where, getDocs, onSnapshot, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut };
 
         let balanceUnsubscribe = null;
+        let lastHandledChargeTime = 0;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.getElementById('app-header').style.display = 'flex';
-                const accountRef = doc(db, "accounts", user.uid);
-                balanceUnsubscribe = onSnapshot(accountRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        window.currentAccount = docSnap.data();
-                        window.currentAccount.uid = user.uid;
+                
+                // Query ашиглаж хэрэглэгчийн баримтыг найдвартай сонсох
+                const q = query(collection(db, "accounts"), where("accountId", "==", user.email.split('@')[0]));
+                balanceUnsubscribe = onSnapshot(q, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const docSnap = snapshot.docs[0];
+                        const data = docSnap.data();
+                        window.currentAccount = data;
+                        window.currentAccount.docRef = docSnap.ref;
                         renderDashboardUI();
+
+                        // ⚡ POS ТАЛААС QR/ID УНШУУЛЖ МӨНГӨ ХАСАГДСАН БОЛ НОГООН ЗӨВ ТЭМДЭГ ГАРГАХ
+                        if (data.lastChargeTimestamp && data.lastChargeTimestamp > lastHandledChargeTime) {
+                            if (lastHandledChargeTime !== 0) {
+                                triggerVibration();
+                                lockPaymentQr();
+                                document.getElementById('scan-success-amount').innerText = `$${Number(data.lastChargeAmount || 0).toFixed(2)}`;
+                                document.getElementById('success-modal').style.display = 'flex';
+                            }
+                            lastHandledChargeTime = data.lastChargeTimestamp;
+                        } else if (!data.lastChargeTimestamp) {
+                            lastHandledChargeTime = Date.now();
+                        }
                     }
                 });
                 navigateToPage('dashboard-page');
@@ -261,7 +265,6 @@
     </script>
 
     <script>
-        const displayChannel = new BroadcastChannel('pos_system_channel');
         let html5QrcodeScanner = null;
         window.currentAccount = null;
 
@@ -276,7 +279,7 @@
             document.getElementById(pageId)?.classList.add('active-page');
 
             if (pageId === 'payment-page') {
-                lockPaymentQr(); 
+                lockPaymentQr();
             } else if (pageId === 'scan-page') {
                 startCameraScanner();
             }
@@ -334,7 +337,7 @@
                 }
                 await window.FB.setDoc(window.FB.doc(window.FB.db, "accounts", user.uid), {
                     accountId: "10011", name: "Alex", balance: 1365.50, pinCode: "1234"
-                });
+                }, { merge: true });
                 fireToast("✅ Test Account 10011 Created (PIN: 1234)!");
             } catch (err) { fireToast("❌ Seed Error: " + err.message); }
         }
@@ -360,8 +363,9 @@
 
             const qrContainer = document.getElementById('account-qr-code');
             qrContainer.innerHTML = '';
+            // POS сканер уншихад шууд танигдахаар зөвхөн accountId-г QR болгоно
             new QRCode(qrContainer, {
-                text: JSON.stringify({ type: "CUSTOMER_WALLET_PAY", accountId: window.currentAccount.accountId }),
+                text: String(window.currentAccount.accountId),
                 width: 180, height: 180, correctLevel: QRCode.CorrectLevel.L
             });
         }
@@ -379,7 +383,7 @@
                             triggerVibration(); 
                             processInvoicePayment(parsed.invoiceId, parsed.amount);
                         }
-                    } catch(e) { fireToast("❌ Invalid QR."); }
+                    } catch(e) { fireToast("❌ Invalid POS QR."); }
                 },
                 () => {}
             ).catch(err => fireToast("❌ Camera Error."));
@@ -391,30 +395,28 @@
             }
         }
 
-        // 🎉 КАМЕРААР QR УНШИЖ ТӨЛӨГДМӨГЦ НОГООН ЗӨВ ТЭМДЭГ ХАРУУЛАХ (QUERY АШИГЛАВ)
+        // ⚡ УТСААР POS-ЫН QR-ЫГ УНШИЖ ТӨЛӨХ ҮЕД
         async function processInvoicePayment(invoiceId, amount) {
-            if (window.currentAccount.balance < amount) return fireToast("❌ Insufficient funds.");
+            const numAmount = Number(amount);
+            if (window.currentAccount.balance < numAmount) return fireToast("❌ Insufficient funds.");
 
             try {
-                const q = window.FB.query(
-                    window.FB.collection(window.FB.db, "accounts"), 
-                    window.FB.where("accountId", "==", window.currentAccount.accountId)
-                );
-                
-                const querySnapshot = await window.FB.getDocs(q);
-                if (querySnapshot.empty) {
-                    return fireToast("❌ Account document not found.");
-                }
-
-                const userDocRef = querySnapshot.docs[0].ref;
-
-                await window.FB.updateDoc(userDocRef, {
-                    balance: window.FB.increment(-amount)
+                // 1. Хэрэглэгчийн балансыг хасах
+                await window.FB.updateDoc(window.currentAccount.docRef, {
+                    balance: window.FB.increment(-numAmount)
                 });
+
+                // 2. POS терминал руу төлөгдсөн тухай мэдээлэл илгээх
+                await window.FB.setDoc(window.FB.doc(window.FB.db, "active_checkouts", "current_checkout"), {
+                    status: "COMPLETED",
+                    invoiceId: String(invoiceId),
+                    amount: numAmount,
+                    customerName: window.currentAccount.name,
+                    paidAt: Date.now()
+                }, { merge: true });
                 
-                displayChannel.postMessage({ type: 'WALLET_PAYMENT_SUCCESS', invoiceId: invoiceId, amount: amount, customerName: window.currentAccount.name });
-                
-                document.getElementById('scan-success-amount').innerText = `$${Number(amount).toFixed(2)}`;
+                // 3. Утсан дээр ногоон зөв тэмдэг харуулах
+                document.getElementById('scan-success-amount').innerText = `$${numAmount.toFixed(2)}`;
                 document.getElementById('success-modal').style.display = 'flex';
 
             } catch (err) { fireToast("❌ Payment Error: " + err.message); }
@@ -434,7 +436,7 @@
             if (newPin.length !== 4 || isNaN(newPin)) return fireToast("❌ New PIN must be 4 digits.");
 
             try {
-                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), { pinCode: newPin });
+                await window.FB.updateDoc(window.currentAccount.docRef, { pinCode: newPin });
                 fireToast("✅ PIN code updated!");
                 document.getElementById('old-pin').value = '';
                 document.getElementById('new-pin').value = '';
@@ -456,8 +458,8 @@
 
                 const recipientDoc = snap.docs[0];
 
-                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", window.currentAccount.uid), { balance: window.FB.increment(-amount) });
-                await window.FB.updateDoc(window.FB.doc(window.FB.db, "accounts", recipientDoc.id), { balance: window.FB.increment(amount) });
+                await window.FB.updateDoc(window.currentAccount.docRef, { balance: window.FB.increment(-amount) });
+                await window.FB.updateDoc(recipientDoc.ref, { balance: window.FB.increment(amount) });
 
                 triggerVibration();
                 fireToast(`🎉 Sent $${amount.toFixed(2)} successfully!`);
