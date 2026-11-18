@@ -71,6 +71,16 @@
         .code-wrapper { background: white; padding: 12px; border-radius: 12px; display: inline-block; width: 100%; margin: 10px 0; }
         .qr-wrapper { display: flex; justify-content: center; background: white; padding: 12px; border-radius: 12px; margin: 10px auto; width: max-content; }
 
+        /* Digital Receipts Styling */
+        .receipt-list { display: flex; flex-direction: column; gap: 12px; max-height: 450px; overflow-y: auto; text-align: left; }
+        .receipt-card { background: #0f172a; border: 1px solid var(--card-border); border-left: 4px solid var(--success); border-radius: 12px; padding: 14px; cursor: pointer; transition: transform 0.1s, border-color 0.2s; }
+        .receipt-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .receipt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .receipt-id { font-family: monospace; font-size: 0.8rem; color: #38bdf8; }
+        .receipt-total { font-size: 1.1rem; font-weight: 800; color: var(--success); }
+        .receipt-date { font-size: 0.75rem; color: var(--text-muted); }
+        .receipt-items-preview { font-size: 0.8rem; color: #cbd5e1; margin-top: 6px; border-top: 1px dashed #334155; padding-top: 6px; }
+
         #reader { width: 100%; border-radius: 12px; overflow: hidden; background: black; }
 
         .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; }
@@ -89,6 +99,7 @@
         </div>
         <div class="nav-list">
             <div class="nav-item" onclick="navigateToPage('dashboard-page')"><span>💰</span> Balance Home</div>
+            <div class="nav-item" onclick="navigateToPage('receipts-page')"><span>🧾</span> Digital Receipts</div>
             <div class="nav-item" onclick="navigateToPage('transfer-page')"><span>💸</span> Transfer Bar</div>
             <div class="nav-item" onclick="navigateToPage('payment-page')"><span>💳</span> Show My QR</div>
             <div class="nav-item" onclick="navigateToPage('scan-page')"><span>📷</span> Scan POS QR</div>
@@ -127,6 +138,19 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <button class="btn btn-primary" onclick="navigateToPage('payment-page')">💳 Show QR</button>
                 <button class="btn btn-success" onclick="navigateToPage('scan-page')">📷 Scan POS</button>
+            </div>
+            <button class="btn" style="background: #1e293b; border: 1px solid #334155; color: #38bdf8;" onclick="navigateToPage('receipts-page')">
+                🧾 View My Digital Receipts (<span id="dashboard-receipt-count">0</span>)
+            </button>
+        </div>
+
+        <!-- DIGITAL RECEIPTS PAGE -->
+        <div class="page-view" id="receipts-page">
+            <div class="page-card">
+                <div class="page-title">🧾 Digital E-Receipts</div>
+                <div class="receipt-list" id="receipts-list-container">
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">No receipts yet.</p>
+                </div>
             </div>
         </div>
 
@@ -192,8 +216,26 @@
             </div>
             <div style="font-size: 1.4rem; font-weight: bold; color: #22c55e; margin-bottom: 5px;">PAYMENT SUCCESSFUL!</div>
             <div style="font-size: 0.9rem; color: var(--text-muted);" id="scan-success-details">Amount Paid</div>
-            <div style="font-size: 2rem; font-weight: bold; color: white; margin: 10px 0 20px 0;" id="scan-success-amount">$0.00</div>
+            <div style="font-size: 2rem; font-weight: bold; color: white; margin: 10px 0 8px 0;" id="scan-success-amount">$0.00</div>
+            <div style="font-size: 0.8rem; color: #38bdf8; margin-bottom: 18px;">🧾 E-Receipt saved to your Wallet!</div>
             <button class="btn btn-success" style="width: 100%; font-size: 1rem; padding: 12px;" onclick="closeSuccessModal()">DONE</button>
+        </div>
+    </div>
+
+    <!-- 🧾 RECEIPT DETAIL MODAL -->
+    <div class="modal-backdrop" id="receipt-detail-modal">
+        <div class="modal-box" style="text-align: left; font-family: monospace;">
+            <div style="text-align: center; border-bottom: 1px dashed #475569; padding-bottom: 12px; margin-bottom: 12px;">
+                <div style="font-size: 1.2rem; font-weight: bold; color: white;">🧾 ELECTRONIC RECEIPT</div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;" id="modal-receipt-id">#INV_000000</div>
+                <div style="font-size: 0.75rem; color: #94a3b8;" id="modal-receipt-date">Date</div>
+            </div>
+            <div id="modal-receipt-items" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; font-size: 0.9rem;"></div>
+            <div style="border-top: 1px dashed #475569; padding-top: 10px; display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold; color: #22c55e; margin-bottom: 20px;">
+                <span>TOTAL PAID:</span>
+                <span id="modal-receipt-total">$0.00</span>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="document.getElementById('receipt-detail-modal').style.display='none'">CLOSE RECEIPT</button>
         </div>
     </div>
 
@@ -202,7 +244,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, updateDoc, increment, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, updateDoc, increment, collection, addDoc, getDoc, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA03_nm4Zk3RXmgIxKbxXP-pEGWnzmsQOE",
@@ -218,17 +260,19 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.FB = { auth, db, doc, setDoc, updateDoc, increment, collection, query, where, getDocs, onSnapshot, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut };
+        window.FB = { auth, db, doc, setDoc, updateDoc, increment, collection, addDoc, getDoc, query, where, getDocs, onSnapshot, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut };
 
         let balanceUnsubscribe = null;
+        let receiptsUnsubscribe = null;
         let lastHandledChargeTime = 0;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.getElementById('app-header').style.display = 'flex';
+                const accId = user.email.split('@')[0];
                 
-                // Query ашиглаж хэрэглэгчийн баримтыг найдвартай сонсох
-                const q = query(collection(db, "accounts"), where("accountId", "==", user.email.split('@')[0]));
+                // 1. Account & Balance Listener
+                const q = query(collection(db, "accounts"), where("accountId", "==", accId));
                 balanceUnsubscribe = onSnapshot(q, (snapshot) => {
                     if (!snapshot.empty) {
                         const docSnap = snapshot.docs[0];
@@ -237,7 +281,7 @@
                         window.currentAccount.docRef = docSnap.ref;
                         renderDashboardUI();
 
-                        // ⚡ POS ТАЛААС QR/ID УНШУУЛЖ МӨНГӨ ХАСАГДСАН БОЛ НОГООН ЗӨВ ТЭМДЭГ ГАРГАХ
+                        // POS талаас QR/ID уншуулж мөнгө хасагдсан бол ногоон зөв тэмдэг гаргах
                         if (data.lastChargeTimestamp && data.lastChargeTimestamp > lastHandledChargeTime) {
                             if (lastHandledChargeTime !== 0) {
                                 triggerVibration();
@@ -251,10 +295,23 @@
                         }
                     }
                 });
+
+                // 2. Digital Receipts Listener
+                const rq = query(collection(db, "receipts"), where("accountId", "==", accId));
+                receiptsUnsubscribe = onSnapshot(rq, (snap) => {
+                    const list = [];
+                    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    window.userReceipts = list;
+                    renderReceiptsUI();
+                });
+
                 navigateToPage('dashboard-page');
             } else {
                 if (balanceUnsubscribe) balanceUnsubscribe();
+                if (receiptsUnsubscribe) receiptsUnsubscribe();
                 window.currentAccount = null;
+                window.userReceipts = [];
                 document.getElementById('app-header').style.display = 'none';
                 stopCameraScanner();
                 document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active-page'));
@@ -267,6 +324,7 @@
     <script>
         let html5QrcodeScanner = null;
         window.currentAccount = null;
+        window.userReceipts = [];
 
         function triggerVibration() {
             if ("vibrate" in navigator) { navigator.vibrate(200); }
@@ -291,6 +349,65 @@
             const shouldOpen = forceState !== undefined ? forceState : !sidebar.classList.contains('active');
             sidebar.classList.toggle('active', shouldOpen);
             overlay.classList.toggle('active', shouldOpen);
+        }
+
+        function renderReceiptsUI() {
+            document.getElementById('dashboard-receipt-count').innerText = window.userReceipts.length;
+            const container = document.getElementById('receipts-list-container');
+            
+            if (window.userReceipts.length === 0) {
+                container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">No digital receipts yet.</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            window.userReceipts.forEach((rec, idx) => {
+                const dateStr = rec.createdAt ? new Date(rec.createdAt).toLocaleString() : 'Recent';
+                const itemSummary = (rec.items && rec.items.length > 0) 
+                    ? rec.items.map(i => `${i.icon || '📦'} ${i.name} (${i.quantity}x)`).join(', ')
+                    : 'POS Purchase';
+
+                const card = document.createElement('div');
+                card.className = 'receipt-card';
+                card.onclick = () => openReceiptDetail(idx);
+                card.innerHTML = `
+                    <div class="receipt-header">
+                        <span class="receipt-id">#${rec.invoiceId || rec.id.slice(0,8)}</span>
+                        <span class="receipt-total">$${Number(rec.amount).toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-date">📅 ${dateStr}</div>
+                    <div class="receipt-items-preview">${itemSummary}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openReceiptDetail(index) {
+            const rec = window.userReceipts[index];
+            if (!rec) return;
+
+            document.getElementById('modal-receipt-id').innerText = `Receipt: #${rec.invoiceId || rec.id}`;
+            document.getElementById('modal-receipt-date').innerText = rec.createdAt ? new Date(rec.createdAt).toLocaleString() : '';
+            document.getElementById('modal-receipt-total').innerText = `$${Number(rec.amount).toFixed(2)}`;
+
+            const itemsContainer = document.getElementById('modal-receipt-items');
+            itemsContainer.innerHTML = '';
+            if (rec.items && rec.items.length > 0) {
+                rec.items.forEach(item => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.justifyContent = 'space-between';
+                    row.innerHTML = `
+                        <span>${item.icon || '📦'} ${item.name} x${item.quantity}</span>
+                        <span>$${(Number(item.price) * Number(item.quantity)).toFixed(2)}</span>
+                    `;
+                    itemsContainer.appendChild(row);
+                });
+            } else {
+                itemsContainer.innerHTML = `<div style="color: #94a3b8;">POS Terminal Payment</div>`;
+            }
+
+            document.getElementById('receipt-detail-modal').style.display = 'flex';
         }
 
         function unlockPaymentQr() {
@@ -363,7 +480,6 @@
 
             const qrContainer = document.getElementById('account-qr-code');
             qrContainer.innerHTML = '';
-            // POS сканер уншихад шууд танигдахаар зөвхөн accountId-г QR болгоно
             new QRCode(qrContainer, {
                 text: String(window.currentAccount.accountId),
                 width: 180, height: 180, correctLevel: QRCode.CorrectLevel.L
@@ -395,18 +511,36 @@
             }
         }
 
-        // ⚡ УТСААР POS-ЫН QR-ЫГ УНШИЖ ТӨЛӨХ ҮЕД
+        // ⚡ УТСААР POS-ЫН QR-ЫГ УНШИЖ ТӨЛӨХ ҮЕД + БАРИМТ ХАДГАЛАХ
         async function processInvoicePayment(invoiceId, amount) {
             const numAmount = Number(amount);
             if (window.currentAccount.balance < numAmount) return fireToast("❌ Insufficient funds.");
 
             try {
+                // 0. Одоогийн active_checkout-оос барааны жагсаалтыг татаж авах
+                let checkoutItems = [];
+                try {
+                    const checkoutSnap = await window.FB.getDoc(window.FB.doc(window.FB.db, "active_checkouts", "current_checkout"));
+                    if (checkoutSnap.exists() && checkoutSnap.data().items) {
+                        checkoutItems = checkoutSnap.data().items;
+                    }
+                } catch(e) {}
+
                 // 1. Хэрэглэгчийн балансыг хасах
                 await window.FB.updateDoc(window.currentAccount.docRef, {
                     balance: window.FB.increment(-numAmount)
                 });
 
-                // 2. POS терминал руу төлөгдсөн тухай мэдээлэл илгээх
+                // 2. Цахим баримтыг Wallet түүхэнд хадгалах
+                await window.FB.addDoc(window.FB.collection(window.FB.db, "receipts"), {
+                    accountId: String(window.currentAccount.accountId),
+                    invoiceId: String(invoiceId),
+                    amount: numAmount,
+                    items: checkoutItems,
+                    createdAt: Date.now()
+                });
+
+                // 3. POS терминал руу төлөгдсөн тухай мэдээлэл илгээх
                 await window.FB.setDoc(window.FB.doc(window.FB.db, "active_checkouts", "current_checkout"), {
                     status: "COMPLETED",
                     invoiceId: String(invoiceId),
@@ -415,7 +549,7 @@
                     paidAt: Date.now()
                 }, { merge: true });
                 
-                // 3. Утсан дээр ногоон зөв тэмдэг харуулах
+                // 4. Утсан дээр ногоон зөв тэмдэг харуулах
                 document.getElementById('scan-success-amount').innerText = `$${numAmount.toFixed(2)}`;
                 document.getElementById('success-modal').style.display = 'flex';
 
